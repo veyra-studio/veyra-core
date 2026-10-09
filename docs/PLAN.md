@@ -30,7 +30,7 @@ These need repository/organization admin rights, so they could not be done from 
 ### Phase 1 — Engine foundation ✅
 - Core modules: ticker, motion (timelines/tweens/springs/easing), scroll, scenes, rect cache, viewport/pointer, script-aware `splitText`, `drawElementText`, preloader, quality governor, sound bus, debug overlay, `createStage` + plugins, capability detection.
 - `@veyra/core/three`: ThreeLayer (pixel camera, configurable fov/near, quality-driven DPR), DOM anchors, DOM text mirroring.
-- 65 unit tests (Vitest + jsdom). Examples: scroll scenes, Persian type, three + DOM — verified in headless Chromium.
+- 65 unit tests (Vitest + jsdom). Full core bundle 19.3 KB min+gzip (tree-shaken builds ship less). Examples: scroll scenes, Persian type, three + DOM — verified in headless Chromium.
 - Docs: README, guide, architecture/ADRs, integration, this plan. CI workflow. Release packing.
 
 ### Phase 2 — Showcase & studio site ✅ (first release)
