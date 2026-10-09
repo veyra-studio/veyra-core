@@ -6,16 +6,16 @@ How projects (the [Abali showcase](https://github.com/veyra-studio/abali), the [
 
 ```
 veyra-core  ──npm pack──▶  release/veyra-core-0.1.0.tgz
-                                  │  copied into
+                                  │  extracted into
                                   ▼
-abali/vendor/veyra-core-0.1.0.tgz        package.json: "@veyra/core": "file:vendor/veyra-core-0.1.0.tgz"
-veyra-studio.github.io/vendor/…tgz       package.json: same
+abali/vendor/veyra-core/                 package.json: "@veyra/core": "file:vendor/veyra-core"
+veyra-studio.github.io/vendor/veyra-core/   package.json: same
 ```
 
-Projects depend on the **packed release artifact** — byte-for-byte what `npm publish` would upload. Consequences:
+Projects depend on the **packed release artifact** — exactly the files `npm publish` would upload — committed unpacked under `vendor/veyra-core/` (plain text, reviewable in diffs) with a `VENDORED.json` recording version, tarball checksum and source commit. Consequences:
 
 - **Reproducible deploys.** A project's GitHub Actions build installs only from its own repository. It never depends on another repository's branch state, on a git dependency being reachable, or on credentials.
-- **Explicit upgrades.** Moving a project to a new engine version is a visible commit (new tarball + lockfile).
+- **Explicit upgrades.** Moving a project to a new engine version is a visible commit (updated `vendor/veyra-core` + lockfile).
 - **Painless migration to npm.** When `@veyra/core` is published, replace the `file:` spec with a version range. Nothing else changes.
 
 ## Releasing a new engine version
@@ -31,7 +31,7 @@ npm run release:pack
 In each project (sibling checkouts assumed):
 
 ```bash
-npm run engine:update          # copies ../veyra-core/release/*.tgz into vendor/ and reinstalls
+npm run engine:update          # extracts ../veyra-core/release/veyra-core-<latest>.tgz into vendor/veyra-core and reinstalls
 git add vendor package.json package-lock.json && git commit -m "Update Veyra Core to <version>"
 ```
 

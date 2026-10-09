@@ -156,7 +156,7 @@ s.revert()
 - Screen readers get the original text once.
 - Nastaliq (and other vertically cascading styles): split by words, not chars.
 
-Helpers: `shapeClusters(word)`, `joiningType(cp)`, `strongDirection(text)`, `directionOf(el)`, `inlineSign(el)` (`-1` in RTL), `toPersianDigits(n)`.
+Helpers: `shapeClusters(word)`, `joiningType(cp)`, `strongDirection(text)`, `directionOf(el)`, `inlineSign(el)` (`-1` in RTL), `toPersianDigits(n)`, and `drawElementText(el)` — renders an element's text into a canvas with the browser's own line breaks (for Canvas2D or WebGL effects over real, accessible HTML).
 
 ## Preloading
 
@@ -219,7 +219,7 @@ const title = gl.mirrorText(document.querySelector('h1')!)      // real HTML →
 - At `z = 0`, 1 world unit = 1 CSS pixel; origin at the viewport center.
 - Pixel ratio follows the quality governor (capped by `maxDpr`).
 - Set `autoRender: false` and render yourself in `onFrame` for custom passes.
-- `drawElementText(el)` draws any element's text into a canvas with its real line breaks.
+- `drawElementText(el)` (exported from `@veyra/core` too) draws any element's text into a 2D canvas with its real font and line breaks — usable as a WebGL texture or in Canvas2D.
 
 ## Debugging
 

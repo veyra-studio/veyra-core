@@ -37,17 +37,19 @@ Live showcase: **[Abali](https://veyra-studio.github.io/abali/)** — a Persian,
 | **Sound** | Optional audio bus: off by default, persisted per visitor, gesture-unlocked, muted when the tab is hidden, noise generator for synthesized sound design. |
 | **Debug** | `?debug` overlay: frame-time graph, FPS, quality, scroll, and a scroll map of every scene's range. |
 | **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), DOM-anchored objects, and DOM text mirrored into textures with the browser's own line breaks. |
+| **Utilities** | `drawElementText` (real HTML text into a canvas, for Canvas2D/WebGL effects), `supportsWebGL2`, `toPersianDigits`, `inlineSign` and the math helpers (`range`, `damp`, `mapRange`, …). |
 
 Zero runtime dependencies. The whole core is ~13 KB min+gzip; three.js is an optional peer dependency used only through the `/three` entry point.
 
 ## Install
 
-Veyra is not on npm yet. Projects consume the packed release tarball (see [docs/integration.md](docs/integration.md)):
+Veyra is not on npm yet. Projects vendor the packed release (see [docs/integration.md](docs/integration.md)):
 
 ```bash
-npm install ./vendor/veyra-core-0.1.0.tgz
-# optional, for @veyra/core/three
-npm install three
+npm run release:pack                        # in veyra-core → release/veyra-core-0.1.0.tgz
+# in a project:
+mkdir -p vendor/veyra-core && tar -xzf ../veyra-core/release/veyra-core-0.1.0.tgz -C vendor/veyra-core --strip-components=1
+npm install ./vendor/veyra-core three       # three only for @veyra/core/three
 ```
 
 ## Develop

@@ -17,12 +17,14 @@ export * from './motion/timeline.js'
 
 export * from './env/viewport.js'
 export * from './env/pointer.js'
+export * from './env/capabilities.js'
 export * from './scroll/scroll.js'
 export * from './layout/rects.js'
 export * from './scene/scene.js'
 
 export * from './text/script.js'
 export * from './text/split.js'
+export * from './text/draw.js'
 
 export * from './assets/preload.js'
 export * from './quality/governor.js'

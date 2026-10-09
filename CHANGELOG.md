@@ -12,4 +12,7 @@ First release.
 - Script-aware `splitText`: Arabic-script joining preservation, lam-alef, ZWNJ, bidi run isolation (incl. W7), masks, a11y copy.
 - Preloader, adaptive quality governor, sound bus, debug overlay.
 - `createStage` composition root with plugin API.
-- `@veyra/core/three`: three.js layer with pixel camera, DOM anchors, DOM text mirroring.
+- `drawElementText`: renders an element's text into a 2D canvas with its real font and line breaks (Canvas2D or WebGL use).
+- `supportsWebGL2`: renderer-free capability detection (keeps three.js out of entry bundles).
+- `@veyra/core/three`: three.js layer with pixel camera (configurable `fov` / `near`), DOM anchors, DOM text mirroring.
+- Package ships `src/` so source maps resolve.

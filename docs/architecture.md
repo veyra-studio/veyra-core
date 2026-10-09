@@ -37,11 +37,11 @@ Projects register with `stage.onFrame(fn, Phase.update)` (or any number between 
 src/
   core/      math, ease, signal, ticker            — no DOM required
   motion/    spring, values, style, timeline       — DOM optional
-  env/       viewport, pointer
+  env/       viewport, pointer, capabilities
   scroll/    scroll controller
   layout/    rect cache
   scene/     scroll scenes
-  text/      script (joining types, bidi helpers), split
+  text/      script (joining types, bidi helpers), split, draw (DOM text → canvas)
   assets/    preloader
   quality/   adaptive governor
   sound/     sound bus
@@ -84,7 +84,7 @@ Reactive state (`viewport.width`, `quality.dpr`, `reducedMotion`) uses tiny expl
 
 ### ADR-008 — Distribution as a packed tarball until npm publication
 
-Showcases depend on `vendor/veyra-core-<version>.tgz` — the exact artifact `npm publish` would upload — instead of a git dependency or a registry. Deploys never depend on another repository's state, no credentials are needed, and switching to the npm registry later is a one-line change. See [integration.md](integration.md).
+Showcases depend on `vendor/veyra-core/` — the unpacked contents of the release tarball, i.e. exactly what `npm publish` would upload — instead of a git dependency or a registry. Deploys never depend on another repository's state, no credentials are needed, and switching to the npm registry later is a one-line change. See [integration.md](integration.md).
 
 ### ADR-009 — Pixel camera for DOM ↔ WebGL
 
