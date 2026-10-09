@@ -1,0 +1,32 @@
+:root {
+  --ink: #111110;
+  --paper: #efeadf;
+  --muted: #77736b;
+  --signal: #ff4f1a;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, sans-serif;
+}
+a { color: inherit; }
+.ex-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem clamp(1rem, 4vw, 3rem);
+  font: 500 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.ex-header a { text-decoration: none; }
+.ex-label {
+  font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Veyra examples</title>
+    <link rel="stylesheet" href="./shared.css" />
+    <style>
+      main { padding: clamp(1rem, 4vw, 3rem); max-width: 60rem; }
+      h1 { font-size: clamp(2.5rem, 7vw, 5rem); line-height: 1; letter-spacing: -0.03em; margin: 0 0 2rem; }
+      ol { list-style: none; padding: 0; margin: 0; border-top: 1px solid #0002; }
+      li a { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid #0002; text-decoration: none; }
+      li a:hover strong, li a:focus-visible strong { color: var(--signal); }
+      strong { font-size: 1.35rem; display: block; }
+      span.n { font-family: ui-monospace, monospace; color: var(--muted); padding-top: 0.35rem; }
+    </style>
+  </head>
+  <body>
+    <header class="ex-header"><span>Veyra Core — examples</span><a href="https://github.com/veyra-studio/veyra-core">source ↗</a></header>
+    <main>
+      <h1>Examples</h1>
+      <ol>
+        <li><a href="./scroll-scenes/"><span class="n">01</span><span><strong>Scroll scenes</strong>Smooth native scroll, pinned scenes, scrubbed timelines, progress as CSS variables.</span></a></li>
+        <li><a href="./persian-type/"><span class="n">02</span><span><strong>Persian type</strong>Script-aware splitting that keeps Arabic-script letters joined while animating each one.</span></a></li>
+        <li><a href="./three-dom/"><span class="n">03</span><span><strong>three.js + DOM</strong>A WebGL layer on the engine loop, with objects anchored to DOM layout.</span></a></li>
+      </ol>
+    </main>
+  </body>
+</html>

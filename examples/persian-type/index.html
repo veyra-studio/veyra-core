@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Persian type — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>02 · script-aware splitting</span></header>
+    <main>
+      <section class="intro">
+        <h1>Split Persian letters <em>without breaking them.</em></h1>
+        <p>
+          Animating each letter means giving each its own box. For Arabic-script languages that destroys joining: letters
+          fall back to isolated forms. Veyra computes Unicode joining types and adds zero-width joiners on the connecting
+          sides, keeps lam-alef ligatures whole, and isolates opposite-direction runs.
+        </p>
+        <button type="button" id="replay">Replay ↻</button>
+      </section>
+
+      <section class="compare" aria-label="Comparison">
+        <div class="row">
+          <p class="ex-label">Naive split — one inline-block per letter</p>
+          <p class="sample" dir="rtl" lang="fa" id="naive">سلام، بطری‌های دوغ</p>
+        </div>
+        <div class="row">
+          <p class="ex-label">Veyra <code>splitText(el, { type: 'chars' })</code></p>
+          <p class="sample" dir="rtl" lang="fa" id="veyra">سلام، بطری‌های دوغ</p>
+        </div>
+        <div class="row">
+          <p class="ex-label">Display weight · Lalezar</p>
+          <p class="sample display" dir="rtl" lang="fa" id="display">یک بطری کوه</p>
+        </div>
+        <div class="row">
+          <p class="ex-label">Mixed direction — the English run stays in order</p>
+          <p class="sample small" dir="rtl" lang="fa" id="mixed">ساخته‌شده با Veyra Core، نسخهٔ ۰٫۱</p>
+        </div>
+        <div class="row">
+          <p class="ex-label">Masked line reveal</p>
+          <p class="para" dir="rtl" lang="fa" id="lines">
+            آبعلی نامِ جایی است در البرز؛ میانِ کوه‌ها، با چشمه‌هایش و برفِ زمستانش. هر بطری، تکه‌ای از همین منظره است که
+            تا سرِ سفره آمده.
+          </p>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scroll scenes — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>01 · scroll scenes</span></header>
+    <main>
+      <section class="hero">
+        <p class="ex-label">Native scroll, smoothed · one frame loop</p>
+        <h1 id="title">Motion that follows the reader.</h1>
+        <p class="lede">Scroll. Every effect on this page is a <code>stage.scene()</code> mapping scroll position to progress.</p>
+      </section>
+
+      <section class="pin" id="pin">
+        <div class="pin-inner">
+          <div class="pin-meta">
+            <p class="ex-label">Pinned with CSS <code>position: sticky</code></p>
+            <p class="counter"><span id="count">0</span><small>%</small></p>
+          </div>
+          <div class="track" id="track">
+            <article class="card"><span>01</span><h2>Ticker</h2><p>One rAF loop, ordered phases.</p></article>
+            <article class="card"><span>02</span><h2>Scroll</h2><p>Smooth wheel, native everything else.</p></article>
+            <article class="card"><span>03</span><h2>Scenes</h2><p>Progress from anchors like “top bottom”.</p></article>
+            <article class="card"><span>04</span><h2>Timelines</h2><p>Seekable, scrubbed by progress.</p></article>
+            <article class="card"><span>05</span><h2>Springs</h2><p>Analytic, frame-rate independent.</p></article>
+          </div>
+          <div class="bar"><div class="bar-fill"></div></div>
+        </div>
+      </section>
+
+      <section class="scrub" id="scrub">
+        <div class="scrub-inner">
+          <div class="shape a"></div>
+          <div class="shape b"></div>
+          <div class="shape c"></div>
+          <p class="scrub-copy">A timeline, scrubbed by a scene.</p>
+        </div>
+      </section>
+
+      <section class="css-only" id="cssonly">
+        <p class="ex-label">CSS-only: <code>--progress</code> set by the scene</p>
+        <p class="big">calc(var(--progress))</p>
+      </section>
+
+      <section class="outro"><p>That’s the loop: <code>scroll → scenes → timelines → render</code>.</p><a href="#top">Back to top ↑</a></section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
