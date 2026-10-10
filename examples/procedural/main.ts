@@ -1,5 +1,5 @@
 import { createNoise, createStage, imageSequence, Phase, seededRandom, whenVisible } from '@veyra/core'
-import { glslColor, glslMath, glslNoise, glslSdf } from '@veyra/core/glsl'
+import { glslColor, glslMath, glslNoise, glslNoiseTexture, glslSdf } from '@veyra/core/glsl'
 
 const stage = createStage({ quality: { dprRange: [1, 2] } })
 const status: Record<string, string> = {}
@@ -79,6 +79,8 @@ ${glslNoise}
 ${glslSdf}
 ${glslColor}
 ${glslMath}
+${glslNoiseTexture}
+uniform sampler2D uNoise;
 void main() {
   vec2 p = (vUv - 0.5) * vec2(uSize.x / uSize.y, 1.0);
   // Domain-warped noise for the backdrop.
@@ -91,6 +93,8 @@ void main() {
   d = opSmoothUnion(d, sdCircle(p - 0.24 * vec2(cos(t * 0.7 + 2.0), sin(t + 1.0)), 0.13), 0.12);
   d = opSmoothUnion(d, sdRing(rotate2d(t * 0.2) * p, 0.34, 0.012), 0.08);
   d += 0.015 * gnoise(vec3(p * 9.0, uTime * 0.5));
+  // (Compiled with the rest; no texture is bound here, so it reads zero.)
+  d += 0.01 * (tfbm(uNoise, 8.0, p * 4.0, 3) + tfbmd(uNoise, 8.0, p, 2).x + tfbm(uNoise, 8.0, vec3(p, 1.0), vec3(0.0, 0.0, 1.0), 2) + tfbmd(uNoise, 8.0, vec3(p, 1.0), vec3(0.0, 0.0, 1.0), 2).x);
   vec3 paper = srgbToLinear(vec3(0.937, 0.918, 0.875));
   vec3 signal = srgbToLinear(vec3(1.0, 0.31, 0.10));
   vec3 ink = srgbToLinear(vec3(0.067, 0.067, 0.063));
