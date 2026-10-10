@@ -18,3 +18,22 @@ export function supportsWebGL2(): boolean {
   }
   return webgl2
 }
+
+/**
+ * True when a WebGL context is rendered in software — SwiftShader, llvmpipe,
+ * the Microsoft Basic Render Driver: no GPU, so a heavy shader takes seconds
+ * per frame. Reads the unmasked renderer name only where the plain one is
+ * hidden (Chrome, Safari); Firefox reports it directly.
+ */
+export function isSoftwareRenderer(gl: WebGLRenderingContext | WebGL2RenderingContext): boolean {
+  try {
+    let name = String(gl.getParameter(gl.RENDERER) ?? '')
+    if (/^webkit webgl$/i.test(name)) {
+      const info = gl.getExtension('WEBGL_debug_renderer_info')
+      if (info) name = String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL) ?? '')
+    }
+    return /swiftshader|llvmpipe|softpipe|software|basic render|mesa offscreen/i.test(name)
+  } catch {
+    return false
+  }
+}

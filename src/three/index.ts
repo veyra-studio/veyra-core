@@ -15,6 +15,7 @@ import * as THREE from 'three'
 import { Phase, type Frame } from '../core/ticker.js'
 import type { Stage, StagePlugin } from '../stage.js'
 import { drawElementText } from '../text/draw.js'
+import { isSoftwareRenderer } from '../env/capabilities.js'
 
 export interface ThreeLayerOptions {
   /** Use an existing canvas. Otherwise a fixed, full-viewport canvas is created. */
@@ -33,6 +34,11 @@ export interface ThreeLayerOptions {
   autoRender?: boolean
   /** Upper bound on pixel ratio, on top of the quality governor. Default `2`. */
   maxDpr?: number
+  /**
+   * On a software renderer (no GPU), start the stage's quality at this level
+   * instead of waiting for slow frames to say so. Default `0`; `false` leaves it.
+   */
+  softwareQuality?: number | false
   /** Called every frame before rendering. */
   onFrame?: (layer: ThreeLayer, frame: Readonly<Frame>) => void
 }
@@ -90,6 +96,8 @@ export class ThreeLayer {
   readonly scene = new THREE.Scene()
   readonly camera: THREE.PerspectiveCamera
   readonly canvas: HTMLCanvasElement
+  /** True when WebGL runs in software (no GPU): see `isSoftwareRenderer`. */
+  readonly software: boolean
   /** Viewport size in CSS pixels. */
   width = 1
   height = 1
@@ -127,6 +135,8 @@ export class ThreeLayer {
     })
     this.maxDpr = options.maxDpr ?? 2
     this.autoRender = options.autoRender ?? true
+    this.software = isSoftwareRenderer(this.renderer.getContext())
+    if (this.software && options.softwareQuality !== false) stage.quality?.set(options.softwareQuality ?? 0)
     this.camera = new THREE.PerspectiveCamera(options.fov ?? 35, 1, 1, 10000)
 
     this.resize()
@@ -259,7 +269,7 @@ export function threeLayer(options?: ThreeLayerOptions): StagePlugin<ThreeLayer>
   }
 }
 
-export { supportsWebGL2 } from '../env/capabilities.js'
+export { isSoftwareRenderer, supportsWebGL2 } from '../env/capabilities.js'
 export { drawElementText, type DrawTextOptions } from '../text/draw.js'
 export { Profile, type Band, type BandOptions, type ProfileOptions, type ProfilePoint } from './profile.js'
 export { studioEnvironment, studioLights, type StudioLight, type StudioOptions } from './studio.js'

@@ -219,4 +219,6 @@ const sample = (x: number, y: number) => {
 }
 const slotRect = () => stage.rects.view(slot)
 
+status.software = layer.software
+status.tier = stage.quality?.tier.value
 Object.assign(window, { __ex: { status, stage, sample, slotRect } })
