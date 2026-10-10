@@ -39,13 +39,13 @@ Live showcase: **[Abali](https://veyra-studio.github.io/abali/)** — a Persian,
 | **Layout motion** | `flip` layout transitions (interruptible, enter fades), `stagger` patterns (center, edges, random, grids mirrored for RTL), inertia (`Decay`). |
 | **Marquee** | Endless bands that run in the reading direction, react to scroll velocity, idle offscreen and stay still under reduced motion. |
 | **Type** | Script-aware `splitText`: Arabic-script letters (Persian, Arabic, Urdu…) **keep their joined forms** when split, lam-alef stays whole, mixed-direction runs keep their order, screen readers get the text once. **Kashida** stretches Persian words on calligraphically ranked connections; `scrambleText` decodes with each script's own letters. |
-| **Procedural** | Seeded gradient noise (`noise2/3`, `fbm`) for organic motion; `@veyra/core/glsl` — hash, noise, SDF, OKLab color and math chunks for your shaders. |
+| **Procedural** | Seeded gradient noise (`noise2/3`, `fbm`) for organic motion; `@veyra/core/glsl` — hash, noise, SDF, OKLab color and math chunks for your shaders. **Terrain**: eroded and ridged noise height fields with baked sun shadows and ambient occlusion — DOM-free, worker-friendly. |
 | **Image sequences** | Scroll-scrubbed frame sequences on a canvas, loaded coarse-to-fine so they respond before every frame has arrived; resolution follows the quality governor. |
 | **Quality** | Adaptive governor: detects refresh rate, measures real frame times, steps quality and pixel ratio down under load and back up with headroom. |
 | **Assets** | Weighted preloader for images, fonts, fetches and any promise; failures never block the experience. |
-| **Sound** | Optional audio bus: off by default, persisted per visitor, gesture-unlocked, muted when the tab is hidden, noise generator for synthesized sound design. |
+| **Sound** | Optional audio bus: off by default, persisted per visitor, gesture-unlocked, muted when the tab is hidden; noise buffers, synthesized `tone` and `burst` one-shots. |
 | **Debug** | `?debug` overlay: frame-time graph, FPS, quality, scroll, and a scroll map of every scene's range. |
-| **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), DOM-anchored objects, and DOM text mirrored into textures with the browser's own line breaks. |
+| **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), DOM-anchored objects, DOM text mirrored into textures with the browser's own line breaks. **Product rendering**: turned shapes from measured silhouettes (`Profile`) with label bands that keep artwork true on cones, studio light baked from code, condensation maps, glossy reflective floors, contact shadows, terrain meshes. |
 | **Utilities** | `whenVisible`, `stage.media()`, `stage.onRefresh()`, `drawElementText` (real HTML text into a canvas), `supportsWebGL2`, `toPersianDigits`, `inlineSign` and the math helpers (`range`, `damp`, `mapRange`, …). |
 
 Zero runtime dependencies. Projects ship only what they import: a page with the stage, scenes and text splitting carries ~17 KB min+gzip of engine, adding horizontal sections, dragging and a marquee ~19 KB; everything together is ~31 KB. Stage-dependent capabilities are plugins (`stage.use(horizontal(…))`), so unused ones cost nothing. three.js is an optional peer dependency used only through `@veyra/core/three`; shader chunks live in `@veyra/core/glsl`.
@@ -59,7 +59,7 @@ npm install @veyra/core@github:veyra-studio/veyra-core#release
 npm install three        # only for @veyra/core/three
 ```
 
-Pin a version with a tag: `github:veyra-studio/veyra-core#v0.2.0`.
+Pin a version with a tag: `github:veyra-studio/veyra-core#v0.3.0`.
 
 ## Develop
 
@@ -81,6 +81,7 @@ Examples (in `examples/`, imported from source):
 4. **Interaction** — draggable carousels in English and Persian, FLIP, magnetic buttons, tilt cards, a custom cursor, marquees.
 5. **Horizontal sections** — one left-to-right, one right-to-left, both snapping.
 6. **Noise, shaders, sequences** — a noise flow field, the GLSL chunks in one shader, a scroll-scrubbed image sequence.
+7. **Product & terrain** — a bottle turned from a measured silhouette with a label band, condensation, studio light, a glossy floor and a contact shadow; a baked mountain range.
 
 ## Documentation
 

@@ -3,13 +3,14 @@
  *
  * @packageDocumentation
  */
-export const VERSION = '0.2.0'
+export const VERSION = '0.3.0'
 
 export * from './core/math.js'
 export * from './core/ease.js'
 export * from './core/signal.js'
 export * from './core/ticker.js'
 export * from './core/noise.js'
+export * from './core/terrain.js'
 
 export * from './motion/spring.js'
 export * from './motion/values.js'

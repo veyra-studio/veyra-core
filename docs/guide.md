@@ -17,6 +17,7 @@ Everything is exported from `@veyra/core`; three.js helpers from `@veyra/core/th
 - [Text splitting](#text-splitting)
 - [Persian typography: kashida and scramble](#persian-typography-kashida-and-scramble)
 - [Noise and GLSL](#noise-and-glsl)
+- [Terrain](#terrain)
 - [Image sequences](#image-sequences)
 - [Visibility, media queries and layout refresh](#visibility-media-queries-and-layout-refresh)
 - [Preloading](#preloading)
@@ -24,6 +25,7 @@ Everything is exported from `@veyra/core`; three.js helpers from `@veyra/core/th
 - [Sound](#sound)
 - [Reduced motion](#reduced-motion)
 - [three.js layer](#threejs-layer)
+- [Product rendering: turned shapes, labels, studio light](#product-rendering-turned-shapes-labels-studio-light)
 - [Debugging](#debugging)
 - [Recipes](#recipes)
 
@@ -345,6 +347,27 @@ void main() {
 - `glslColor` — `srgbToLinear`, `linearToSrgb`, `linearToOklab`, `oklabToLinear`, `mixOklab`, `cosinePalette`.
 - `glslMath` — `remap`, `remapClamped`, `smootherstep`, `rotate2d`.
 
+## Terrain
+
+Mountains on a regular grid, lit once. Pure functions with no DOM, so the heavy part can run in a worker.
+
+```ts
+import { heightfield, erodedNoise, ridgedNoise, bakeSunlight, bakeOcclusion, heightfieldMesh } from '@veyra/core'
+
+const field = heightfield({
+  size: [8000, 8000],                                    // world units, centered on the origin
+  resolution: 256,
+  height: (x, z) => erodedNoise(x / 2600, z / 2600) * 1800 + ridgedNoise(x / 1200, z / 1200) * 300,
+})
+const sun = bakeSunlight(field, [0.8, 0.4, -0.4])        // 0…1 per sample: shadows from the terrain itself
+const ao = bakeOcclusion(field, { radius: 1200 })         // 0…1 per sample: how open the sky is
+field.sample(x, z)                                       // bilinear height; field.normal(x, z), field.bilinear(data, x, z)
+```
+
+- `erodedNoise` layers value noise with its derivatives, so steep places get less fine detail — ridges, spurs and gullies that read as erosion. `ridgedNoise` gives sharp crests. `valueNoiseD` is the underlying noise with analytic derivatives.
+- `heightfieldMesh(field, { segments, layout, attributes })` returns typed arrays (transferable from a worker); `layout(u, v)` places the grid unevenly — dense near the camera, sparse toward the horizon. In three.js, `heightfieldGeometry(field, …)` builds the geometry directly and `meshGeometry(arrays)` wraps arrays made elsewhere. Baked arrays become float attributes for your shader.
+- Worker pattern: bake in the worker, post `{ heights, mesh }`, then on the main thread `heightfield({ size, resolution, heights })` restores a sampler (for a camera that walks the ground) and `meshGeometry(mesh)` the geometry.
+
 ## Image sequences
 
 ```ts
@@ -408,6 +431,11 @@ stage.sound!.enabled.subscribe((on) => toggle.setAttribute('aria-pressed', Strin
 const ctx = stage.sound!.context!          // for synthesized sound design
 const noise = stage.sound!.noise(1, 'pink')
 stage.sound!.play(buffer, { volume: 0.6, rate: 1.2 })
+
+// One-shots, synthesized: a click, a hiss, a ping (silent no-ops while sound is off).
+stage.sound!.burst({ from: 3600, to: 2600, q: 7, gain: 0.3, decay: 0.035 })              // a metallic click
+stage.sound!.burst({ filter: 'highpass', from: 6000, to: 2400, gain: 0.25, decay: 0.9 })  // gas escaping
+stage.sound!.tone({ frequency: 3100, type: 'triangle', gain: 0.04, decay: 0.2, pan: 0.3 }) // a ring
 ```
 
 Sound never plays unless the visitor turned it on; the choice is remembered.
@@ -436,6 +464,41 @@ const title = gl.mirrorText(document.querySelector('h1')!)      // real HTML →
 - Pixel ratio follows the quality governor (capped by `maxDpr`).
 - Set `autoRender: false` and render yourself in `onFrame` for custom passes.
 - `drawElementText(el)` (exported from `@veyra/core` too) draws any element's text into a 2D canvas with its real font and line breaks — usable as a WebGL texture or in Canvas2D.
+
+## Product rendering: turned shapes, labels, studio light
+
+Everything a product shot needs, without model files or HDR images (`@veyra/core/three`).
+
+```ts
+import { Profile, studioEnvironment, condensationMaps, ReflectiveFloor, ContactShadow } from '@veyra/core/three'
+
+// A bottle measured off a photograph: [radius, height] from the bottom up.
+const outer = new Profile([[0, 0.01], [0.1, 0], [0.15, 0.1], [0.15, 0.5], [0.07, 0.78], [0.06, 0.97]], { corners: [1] })
+const glass = new THREE.Mesh(outer.geometry(128), glassMaterial)
+const liquid = outer.offset(0.01).clip(0.03, 0.82)          // the inside, filled to 82%
+outer.volume()                                              // capacity check
+const label = outer.band({ from: 0.52, to: 0.66, arc: Math.PI * 0.8, lift: 0.002 })
+// Draw artwork at label.width × label.height; label.halfWidthAt(v) gives the cut edge (it narrows on a cone).
+
+scene.environment = studioEnvironment(renderer)             // softboxes and strips baked into a PMREM map
+const drops = condensationMaps({ size: 1024 })              // cold glass: normal + roughness maps
+
+const floor = new ReflectiveFloor({ width: 8000, depth: 8000, strength: 0.4, layer: 3 })  // glossy acrylic
+const shadow = new ContactShadow({ width: 400, depth: 400, far: 200 })
+shadow.cast(bottle)
+stage.onFrame(() => {
+  floor.update(renderer, scene, camera)                     // before rendering
+  shadow.update(renderer, scene)
+  renderer.render(scene, camera)
+}, Phase.render + 1)
+```
+
+- `Profile` smooths measured points (centripetal Catmull-Rom, sharp `corners` kept), samples them (`radiusAt`, `slopeAt`, `lengthAt`), offsets with miter joins (glass walls, liquids), clips to closed solids and measures volume.
+- `band()` texture coordinates follow arc length around the axis and outline length along it, so artwork keeps its proportions on a cone while the band's edges follow the axis — the cut of a real label on a tapered neck.
+- `studioEnvironment(renderer, { lights, walls })`: presets `studioLights.product` (rim strips, front strips, overhead key) and `studioLights.soft` (food, ceramics), or your own panels.
+- `ReflectiveFloor` fades and blurs the reflection with the height of what it reflects, reconstructed from depth, so it looks right at grazing camera angles. `setFade(start, end)` and `strength` can change per frame.
+- `ContactShadow` renders casters from below as depth and blurs it. Move it with `object.position`, size it with `resize(width, depth, far)`; don't scale `object`.
+- Transmissive glass refracts only opaque objects: keep liquids and labels opaque. In three.js, `thickness` is in local units (it is scaled by the model matrix); `attenuationDistance` is in world units.
 
 ## Debugging
 
