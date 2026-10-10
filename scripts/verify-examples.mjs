@@ -43,6 +43,17 @@ const fail = (msg) => {
 const pass = (msg) => console.log(`  ✓ ${msg}`)
 const check = (ok, msg, detail = '') => (ok ? pass(msg) : fail(detail ? `${msg} — ${detail}` : msg))
 const wait = (page, ms) => page.waitForTimeout(ms)
+// Snapping eases out over about a second; on a loaded machine it can take
+// longer. Poll until the measurement says it has landed (or give up after 6 s).
+const settle = async (page, measure) => {
+  let last
+  for (let i = 0; i < 12; i++) {
+    await wait(page, i === 0 ? 1600 : 400)
+    last = await page.evaluate(measure)
+    if (last.edge < 2 || last.atEnd) break
+  }
+  return last
+}
 
 async function visit(browser, name, path, steps, options = {}) {
   console.log(`\n${name}`)
@@ -93,6 +104,9 @@ try {
   })
 
   await visit(browser, 'Persian typography', '/persian-type/', async (page) => {
+    // The page opens by playing the stretch 0 → 8 → 0 (about three seconds),
+    // which would overwrite a level set while it runs: let it finish first.
+    await page.waitForFunction(() => performance.now() > 3600 && !document.querySelector('#kashida').textContent.includes('ـ'), null, { timeout: 15000 })
     await page.$eval('#k-range', (input) => {
       input.value = '6'
       input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -213,8 +227,7 @@ try {
     await wait(page, 250)
     const enX = await translateX(page, '#h-en .h-track')
     check(enX < -200, `left-to-right row travels left (x = ${enX.toFixed(0)})`)
-    await wait(page, 1600)
-    const enSnap = await page.evaluate(() => {
+    const enSnap = await settle(page, () => {
       const h = window.__ex.en
       const track = document.querySelector('#h-en .h-track')
       const pin = document.querySelector('#h-en .h-pin').getBoundingClientRect()
@@ -228,8 +241,7 @@ try {
     await wait(page, 250)
     const faX = await translateX(page, '#h-fa .h-track')
     check(faX > 200, `right-to-left row travels right (x = ${faX.toFixed(0)})`)
-    await wait(page, 1600)
-    const faSnap = await page.evaluate(() => {
+    const faSnap = await settle(page, () => {
       const h = window.__ex.fa
       const track = document.querySelector('#h-fa .h-track')
       const pin = document.querySelector('#h-fa .h-pin').getBoundingClientRect()
@@ -276,6 +288,8 @@ try {
   })
 
   await visit(browser, 'Product & terrain', '/studio/', async (page) => {
+    const soft = await page.evaluate(() => ({ software: window.__ex.status.software, tier: window.__ex.status.tier }))
+    check(soft.software === true && soft.tier === 'low', `software rendering detected, quality starts at the lowest tier (${soft.software}, ${soft.tier})`)
     await scrollToSection(page, '.stage-wrap', 0.2)
     await page.waitForFunction(() => (window.__ex.status.frames ?? 0) > 3, null, { timeout: 20000 })
     // Let the sticky stage settle where the scroll put it.
