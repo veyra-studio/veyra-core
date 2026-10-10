@@ -79,5 +79,7 @@ describe('refractive solid', () => {
     expect(compile({ inside: 'void solidInside(vec3 p, vec3 d, float len, int bounce, inout vec3 light, inout vec3 through) { light += 0.1; }' }).key).not.toBe(a)
     // Uniform values don't change the program.
     expect(compile({ ior: 1.2, bounds: new THREE.Vector3(2, 2, 2) }).key).toBe(a)
+    // A hash, not the source: three.js rebuilds the key often.
+    expect(a.length).toBeLessThan(40)
   })
 })

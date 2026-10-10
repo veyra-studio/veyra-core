@@ -8,7 +8,7 @@
  * stage.scene('#intro', { ...scenePresets.pinned, onProgress: (p) => … })
  * ```
  */
-import { mediaSignal, signal, type ReadonlySignal, type Signal } from './core/signal.js'
+import { computed, mediaSignal, signal, type ReadonlySignal, type Signal } from './core/signal.js'
 import { getDefaultTicker, Phase, type Frame, type TickFn, type Ticker } from './core/ticker.js'
 import { DebugOverlay, debugRequested } from './debug/overlay.js'
 import { Pointer, type PointerOptions } from './env/pointer.js'
@@ -94,10 +94,11 @@ export function createStage(options: StageOptions = {}): Stage {
   reflectReduced(reducedMotion.value)
   const stopReflect = reducedMotion.subscribe(reflectReduced)
 
-  const scroll = options.scroll === false ? null : new ScrollController(options.scroll ?? {}, { reducedMotion, touch: viewport.touch })
+  const quality = options.quality === false ? null : new QualityGovernor(options.quality)
+  const slow = quality ? computed([quality.tier], (t) => t === 'low') : undefined
+  const scroll = options.scroll === false ? null : new ScrollController(options.scroll ?? {}, { reducedMotion, touch: viewport.touch, slow })
   const readScroll = () => (scroll ? scroll.y : typeof window === 'undefined' ? 0 : window.scrollY)
   const rects = new RectCache(readScroll)
-  const quality = options.quality === false ? null : new QualityGovernor(options.quality)
   const sound = options.sound ? new SoundBus(options.sound === true ? {} : options.sound) : null
   const scenes = new Set<Scene>()
   const refreshListeners = new Set<() => void>()
@@ -233,6 +234,7 @@ export function createStage(options: StageOptions = {}): Stage {
       refreshListeners.clear()
       overlay?.destroy()
       scroll?.destroy()
+      slow?.dispose()
       pointer?.destroy()
       viewport.destroy()
       sound?.destroy()

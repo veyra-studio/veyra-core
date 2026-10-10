@@ -169,6 +169,7 @@ stage.scroll!.y; stage.scroll!.velocity; stage.scroll!.progress
 ```
 
 - Wheel input is smoothed; keyboard, scrollbar, touch and find-in-page stay native and are followed.
+- While quality is at its lowest tier, the wheel is left to the browser too (`nativeWhenSlow`, default `true`): smoothing can't look smooth at a low frame rate, and native scrolling stays responsive.
 - Same-page anchor links are intercepted to scroll smoothly; focus moves to the target.
 - Add `data-veyra-native-scroll` to nested scrollable areas to leave their wheel events alone.
 
@@ -454,7 +455,9 @@ stage.quality!.dpr     // recommended pixel ratio
 stage.quality!.tier.subscribe((t) => (bloom.enabled = t === 'high'), { immediate: true })
 ```
 
-The governor watches real frame times in windows of frames: two slow windows step the level down, six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. Tie expensive shader variants to `tier` so the low tier stays light.
+The governor watches real frame times in windows of 30 frames: two slow windows step the level down, one far too slow window (under 60% of the target) steps it down at once — further the slower it is — and six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. The refresh rate is measured over the first second but never taken below `minRefreshRate` (60 Hz): a device that only manages 30 fps is struggling, not showing a 30 Hz screen.
+
+The starting level (`initial: 'auto'`) comes from hardware hints: desktops start high (lower with four cores or few gigabytes of memory), phones and tablets (a coarse pointer) start in the middle and climb if they can. Tie expensive features to `tier` — and follow it at runtime, not only when building — so the low tier stays light.
 
 ## Sound
 
@@ -497,6 +500,7 @@ const title = gl.mirrorText(document.querySelector('h1')!)      // real HTML →
 
 - At `z = 0`, 1 world unit = 1 CSS pixel; origin at the viewport center.
 - Pixel ratio follows the quality governor (capped by `maxDpr`).
+- `warmUp(renderer, scene, camera)` prepares a scene before it is first shown: its programs compile in parallel where the browser allows, then it is drawn once into a single pixel so textures upload and shadow maps and transmission targets are built. Call it for worlds built ahead of time (a later chapter's scene) so reaching them doesn't stall a frame.
 - Over a transparent canvas, `seeThroughGlass: true` lets glass, ice and water show the page through themselves (three.js otherwise fills what they refract of the empty background with half-transparent white, which turns clear glass milky over a dark page); opaque objects behind still refract. Also settable as `gl.seeThroughGlass`.
 - On a software renderer (no GPU: SwiftShader, llvmpipe…) the layer sets the stage's quality to its lowest level from the start (`gl.software` says so; `softwareQuality` picks another level, `false` opts out). `isSoftwareRenderer(gl)` is exported for your own checks.
 - Set `autoRender: false` and render yourself in `onFrame` for custom passes.

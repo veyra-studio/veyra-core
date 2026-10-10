@@ -291,6 +291,8 @@ try {
   await visit(browser, 'Product & terrain', '/studio/', async (page) => {
     const soft = await page.evaluate(() => ({ software: window.__ex.status.software, tier: window.__ex.status.tier }))
     check(soft.software === true && soft.tier === 'low', `software rendering detected, quality starts at the lowest tier (${soft.software}, ${soft.tier})`)
+    await page.waitForFunction(() => window.__ex.status.warmed === true, null, { timeout: 20000 })
+    check(true, 'warmUp compiles and draws the product scene before it shows')
     await scrollToSection(page, '.stage-wrap', 0.2)
     await page.waitForFunction(() => (window.__ex.status.frames ?? 0) > 3, null, { timeout: 20000 })
     // Let the sticky stage settle where the scroll put it.

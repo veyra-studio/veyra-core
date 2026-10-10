@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-10-10
+
+Lighter on weak devices. No API removed; the governor's and the scroll's defaults change.
+
+- **Quality governor**: windows of 30 frames instead of 45; a window far below target (under 60%) steps down at once, by 0.4 below 40% of target; the measured refresh rate is never taken below `minRefreshRate` (new option, default 60 Hz) — a device rendering at 30 fps used to pass for a 30 Hz screen and was never relieved — and a slow warm-up steps down right away. `estimateQuality()` starts phones and tablets (coarse pointer) at 0.55 instead of counting their eight cores as a desktop's, and lowers further with 2 GB of memory or less.
+- **Scroll**: while quality is at its lowest tier, wheel input is left to the browser (`nativeWhenSlow`, default `true`); smoothing comes back when the device catches up.
+- **`warmUp(renderer, scene, camera)`** (`@veyra/core/three`): compiles a scene's programs in parallel, then draws it once into a single pixel so textures upload and shadow maps and transmission targets are built — reaching a world built ahead of time no longer stalls a frame. Example 07 warms its product scene, with a browser check.
+- **`refractiveSolid`**: its program cache key is a hash of the source instead of the source itself — three.js rebuilds the key whenever a material may need another program, e.g. every frame it draws to the screen and to a render target.
+
 ## 0.5.0 — 2026-10-10
 
 Clear solids. Additive: 0.4 code keeps working.
