@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@veyra\/core\/three$/, replacement: resolve(src, 'three/index.ts') },
+      { find: /^@veyra\/core\/glsl$/, replacement: resolve(src, 'glsl/index.ts') },
       { find: /^@veyra\/core$/, replacement: resolve(src, 'index.ts') },
     ],
   },
@@ -24,6 +25,9 @@ export default defineConfig({
         persianType: resolve(root, 'persian-type/index.html'),
         scrollScenes: resolve(root, 'scroll-scenes/index.html'),
         threeDom: resolve(root, 'three-dom/index.html'),
+        interaction: resolve(root, 'interaction/index.html'),
+        horizontal: resolve(root, 'horizontal/index.html'),
+        procedural: resolve(root, 'procedural/index.html'),
       },
     },
   },

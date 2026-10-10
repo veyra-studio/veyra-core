@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Horizontal sections — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>05 · horizontal sections</span></header>
+    <main>
+      <section class="intro">
+        <h1>Scroll down, travel <em>sideways.</em></h1>
+        <p>
+          <code>horizontal()</code> pins a section with CSS sticky and turns vertical scrolling into horizontal travel, sizing
+          the section so both distances match. In a right-to-left section the row travels rightward, so panels still arrive
+          in reading order. It settles on the nearest panel when scrolling stops, writes each panel's progress to
+          <code>--panel-progress</code>, and keyboard focus inside an offscreen panel scrolls the page to it.
+        </p>
+      </section>
+
+      <section class="h" id="h-en" aria-label="Chapters, left to right">
+        <div class="h-pin">
+          <div class="h-head">
+            <p class="ex-label">left to right · snaps to panels</p>
+            <p class="h-count"><span id="count-en">01</span> / 05</p>
+          </div>
+          <div class="h-track">
+            <article class="panel"><div class="art"></div><h2>Pin</h2><p>CSS sticky does the pinning; nothing is faked.</p><a href="#h-fa">Next section</a></article>
+            <article class="panel"><div class="art"></div><h2>Travel</h2><p>Every pixel scrolled is a pixel travelled.</p><a href="#h-fa">Next section</a></article>
+            <article class="panel"><div class="art"></div><h2>Snap</h2><p>Stop anywhere; it settles on a panel.</p><a href="#h-fa">Next section</a></article>
+            <article class="panel"><div class="art"></div><h2>Progress</h2><p>Each panel knows how far across it is.</p><a href="#h-fa">Next section</a></article>
+            <article class="panel"><div class="art"></div><h2>Focus</h2><p>Tab into a hidden panel and the page follows.</p><a href="#h-fa">Next section</a></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="between">
+        <p>Between the two sections the page scrolls normally.</p>
+      </section>
+
+      <section class="h" id="h-fa" dir="rtl" lang="fa" aria-label="فصل‌ها، از راست به چپ">
+        <div class="h-pin">
+          <div class="h-head">
+            <p class="ex-label">راست به چپ · روی هر بخش می‌نشیند</p>
+            <p class="h-count"><span id="count-fa">۰۱</span> / ۰۵</p>
+          </div>
+          <div class="h-track">
+            <article class="panel"><div class="art"></div><h2>سنجاق</h2><p>چسبندگیِ CSS کار را می‌کند؛ هیچ ترفندی در کار نیست.</p><a href="#top">بالای صفحه</a></article>
+            <article class="panel"><div class="art"></div><h2>سفر</h2><p>هر پیکسل اسکرول، یک پیکسل حرکت.</p><a href="#top">بالای صفحه</a></article>
+            <article class="panel"><div class="art"></div><h2>نشستن</h2><p>هر جا بایستید، روی یک بخش می‌نشیند.</p><a href="#top">بالای صفحه</a></article>
+            <article class="panel"><div class="art"></div><h2>پیشرفت</h2><p>هر بخش می‌داند چقدر جلو آمده.</p><a href="#top">بالای صفحه</a></article>
+            <article class="panel"><div class="art"></div><h2>تمرکز</h2><p>با Tab به بخشِ پنهان بروید؛ صفحه دنبالتان می‌آید.</p><a href="#top">بالای صفحه</a></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="outro"><p>That's the whole trick — two calls to <code>horizontal()</code>.</p></section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

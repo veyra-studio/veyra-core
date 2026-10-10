@@ -11,8 +11,10 @@ import { interpolate, type Interpolator, type TweenValue } from './values.js'
 
 export type Targets = object | string | ArrayLike<object> | null | undefined
 export type TweenVars = Record<string, TweenValue>
-/** Per-target delay. A number staggers linearly; a function gets full control. */
-export type Stagger = number | ((index: number, count: number) => number)
+/** Delay (seconds) of target `index` out of `count`. */
+export type StaggerFn = (index: number, count: number) => number
+/** Per-target delay. A number staggers linearly; a function (see `stagger()`) gets full control. */
+export type Stagger = number | StaggerFn
 
 export interface TweenOptions {
   /** Seconds. Default `0.8`. */

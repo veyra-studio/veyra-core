@@ -18,3 +18,6 @@ button:hover, button:focus-visible { background: var(--ink); color: var(--paper)
 .sample.small { font-size: clamp(1.5rem, 4vw, 2.75rem); font-weight: 600; }
 .para { font-family: 'Vazirmatn Variable', sans-serif; font-size: clamp(1.15rem, 2.2vw, 1.6rem); line-height: 2; max-width: 36em; margin: 0; }
 #naive span { display: inline-block; }
+code { font-family: ui-monospace, monospace; font-size: 0.95em; text-transform: none; letter-spacing: 0; color: var(--ink); }
+#k-range { width: min(100%, 28rem); accent-color: var(--signal); margin-top: 0.5rem; }
+output { font-family: 'Vazirmatn Variable', sans-serif; color: var(--ink); }

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interaction — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>04 · interaction</span></header>
+    <main>
+      <section class="intro">
+        <h1>Things you can <em>throw.</em></h1>
+        <p>
+          Dragging with inertia, rubber-band bounds and snapping; FLIP layout transitions; magnetic buttons; tilt cards; a
+          custom cursor; endless marquees. One frame loop, physics that is exact at any frame rate, and every horizontal
+          behavior aware of the reading direction.
+        </p>
+      </section>
+
+      <section class="block" aria-labelledby="drag-title">
+        <p class="ex-label" id="drag-title"><code>draggable()</code> — inertia · bounds · snap · arrow keys</p>
+        <div class="carousel" data-cursor="Drag">
+          <div class="track" id="track-en" tabindex="0" aria-label="Cards. Use the arrow keys to move.">
+            <article class="card"><span>01</span><h2>Throw</h2><p>Release with speed and it coasts.</p></article>
+            <article class="card"><span>02</span><h2>Resist</h2><p>Past the edge, it pushes back.</p></article>
+            <article class="card"><span>03</span><h2>Snap</h2><p>It lands on a card, keeping the throw.</p></article>
+            <article class="card"><span>04</span><h2>Step</h2><p>Arrow keys move one card at a time.</p></article>
+            <article class="card"><span>05</span><h2>Catch</h2><p>Grab it mid-flight; it stops.</p></article>
+            <article class="card"><span>06</span><h2>Rest</h2><p>Reduced motion lands without flight.</p></article>
+          </div>
+        </div>
+        <div class="carousel" dir="rtl" lang="fa" data-cursor="بکشید">
+          <div class="track" id="track-fa" tabindex="0" aria-label="کارت‌ها. با کلیدهای جهت جابه‌جا کنید.">
+            <article class="card"><span>۰۱</span><h2>پرتاب</h2><p>با سرعت رها کنید، ادامه می‌دهد.</p></article>
+            <article class="card"><span>۰۲</span><h2>مقاومت</h2><p>از لبه که بگذرد، پس می‌زند.</p></article>
+            <article class="card"><span>۰۳</span><h2>نشستن</h2><p>روی یک کارت می‌نشیند.</p></article>
+            <article class="card"><span>۰۴</span><h2>گام</h2><p>کلیدهای جهت، کارت به کارت.</p></article>
+            <article class="card"><span>۰۵</span><h2>گرفتن</h2><p>وسط حرکت بگیریدش؛ می‌ایستد.</p></article>
+            <article class="card"><span>۰۶</span><h2>آرامش</h2><p>حرکت کمتر، بی‌پرواز می‌نشیند.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="flip-title">
+        <p class="ex-label" id="flip-title"><code>flip()</code> — change the layout any way; elements travel</p>
+        <div class="controls">
+          <button type="button" id="shuffle">Shuffle</button>
+          <button type="button" id="layout" aria-pressed="false">List view</button>
+          <button type="button" id="filter" aria-pressed="false">Odd only</button>
+        </div>
+        <ul class="tiles" id="tiles">
+          <li>01</li><li>02</li><li>03</li><li>04</li><li>05</li><li>06</li>
+          <li>07</li><li>08</li><li>09</li><li>10</li><li>11</li><li>12</li>
+        </ul>
+      </section>
+
+      <section class="block" aria-labelledby="pointer-title">
+        <p class="ex-label" id="pointer-title"><code>magnetic()</code> · <code>tilt()</code> · <code>cursor()</code></p>
+        <div class="magnets">
+          <button type="button" class="magnet"><span>Magnetic</span></button>
+          <button type="button" class="magnet"><span>Pulls closer</span></button>
+          <button type="button" class="magnet" lang="fa"><span>آهنربایی</span></button>
+        </div>
+        <div class="tilts">
+          <div class="tilt-card" data-cursor="View"><span>Tilt</span><strong>Leans toward you</strong></div>
+          <div class="tilt-card" data-cursor="View"><span>Glare</span><strong>Light follows the pointer</strong></div>
+          <div class="tilt-card" lang="fa" dir="rtl" data-cursor="ببین"><span>کج</span><strong>به سمت شما خم می‌شود</strong></div>
+        </div>
+      </section>
+
+      <section class="block marquees" aria-labelledby="marquee-title">
+        <p class="ex-label" id="marquee-title"><code>marquee()</code> — runs in the reading direction, speeds up with scroll</p>
+        <div class="marquee" id="mq-en"><span>Veyra Core — creative web experience engine —</span></div>
+        <div class="marquee" id="mq-fa" dir="rtl" lang="fa"><span>ویرا — موتور تجربه‌های خلاقانهٔ وب —</span></div>
+      </section>
+      <div class="spacer" aria-hidden="true"></div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

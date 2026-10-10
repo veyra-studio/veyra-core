@@ -1,0 +1,12 @@
+main > section:not(.seq) { padding-inline: clamp(1rem, 4vw, 3rem); }
+code { font-family: ui-monospace, monospace; font-size: 0.95em; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.intro { min-height: 55vh; display: flex; flex-direction: column; justify-content: center; max-width: 70rem; }
+.intro h1 { font-size: clamp(2.5rem, 8vw, 7rem); line-height: 0.95; letter-spacing: -0.045em; margin: 0 0 1.5rem; }
+.intro h1 em { font-style: normal; color: var(--signal); }
+.intro p { max-width: 60ch; color: #3c3a36; }
+.block { margin-top: 3rem; }
+.field, .shader { display: block; width: 100%; height: min(70vh, 34rem); border-radius: 8px; background: var(--ink); }
+.seq { height: 320vh; margin-top: 4rem; }
+.seq-pin { position: sticky; top: 0; height: 100vh; display: grid; grid-template-rows: auto 1fr; padding: 1.5rem clamp(1rem, 4vw, 3rem); }
+#turn { width: 100%; height: 100%; display: block; }
+.outro { min-height: 40vh; display: grid; place-items: center start; color: var(--muted); }

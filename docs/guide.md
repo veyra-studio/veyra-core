@@ -5,10 +5,20 @@ Everything is exported from `@veyra/core`; three.js helpers from `@veyra/core/th
 - [Stage](#stage)
 - [Ticker](#ticker)
 - [Motion: timelines and tweens](#motion-timelines-and-tweens)
-- [Springs and damping](#springs-and-damping)
+- [Stagger patterns](#stagger-patterns)
+- [Springs, inertia and damping](#springs-inertia-and-damping)
+- [FLIP layout transitions](#flip-layout-transitions)
 - [Scroll](#scroll)
 - [Scenes](#scenes)
+- [Horizontal sections](#horizontal-sections)
+- [Dragging](#dragging)
+- [Pointer effects: magnetic, tilt, cursor](#pointer-effects-magnetic-tilt-cursor)
+- [Marquee](#marquee)
 - [Text splitting](#text-splitting)
+- [Persian typography: kashida and scramble](#persian-typography-kashida-and-scramble)
+- [Noise and GLSL](#noise-and-glsl)
+- [Image sequences](#image-sequences)
+- [Visibility, media queries and layout refresh](#visibility-media-queries-and-layout-refresh)
 - [Preloading](#preloading)
 - [Adaptive quality](#adaptive-quality)
 - [Sound](#sound)
@@ -37,7 +47,19 @@ stage.refresh()   // re-measure after you change layout (batched to next frame)
 stage.destroy()
 ```
 
-Layout refreshes happen automatically on width changes, font loading, `load`, and document height changes.
+Layout refreshes happen automatically on width changes, font loading, `load`, and document height changes; `stage.onRefresh(fn)` runs your own re-measuring at the same moments.
+
+Capabilities that need the stage are plugins, so bundles only carry what a page uses:
+
+```ts
+import { createStage, horizontal, draggable, marquee, magnetic, tilt, cursor, imageSequence } from '@veyra/core'
+
+const stage = createStage()
+const gallery = stage.use(horizontal('.gallery', { snap: true }))
+stage.use(cursor())
+```
+
+Every plugin returns a controller with `destroy()`, and `stage.destroy()` tears them all down.
 
 ## Ticker
 
@@ -66,7 +88,7 @@ tl.progress = 0.5    // …or scrubbed (see scenes)
 await tl.finished
 ```
 
-Targets: elements (transform shorthands `x y z rotate rotateX rotateY scale scaleX scaleY skewX skewY`, `opacity`, CSS custom properties `--name`, any style property), selectors, arrays/NodeLists, and plain objects (including uniforms and signals via `value`).
+Targets: elements (transform shorthands `x y z rotate rotateX rotateY scale scaleX scaleY skewX skewY transformPerspective`, `opacity`, CSS custom properties `--name`, any style property), selectors, arrays/NodeLists, and plain objects (including uniforms and signals via `value`).
 
 Values: numbers, colors (`#hex`, `rgb()`; mixed in linear light), and strings containing numbers (`'inset(0% 0% 100% 0%)'`, `'blur(8px)'`, `'12vw'`).
 
@@ -78,7 +100,19 @@ One-shot: `animate(target, vars, options)` or `stage.animate(...)` (which honors
 
 Eases: `linear`, `sine*`, `quad*`, `cubic*`, `quart*`, `quint*`, `expo*`, `circ*`, `back*`, `elasticOut`, `bounceOut`, and Veyra's `glide` (soft landing), `drift` (weighty in-out), `snap` (decisive), `tension` (anticipation). Or `cubicBezier(x1, y1, x2, y2)`.
 
-## Springs and damping
+## Stagger patterns
+
+```ts
+import { stagger } from '@veyra/core'
+
+tl.to(cards, { opacity: 1, y: 0 }, { stagger: stagger(0.06, { from: 'center' }) })
+tl.to(cells, { scale: 1 }, { stagger: stagger(0.03, { grid: [6, 10], from: 'start', rtl: true }) })
+tl.to(dots, { opacity: 1 }, { stagger: stagger(0, { total: 1.2, from: 'random', ease: 'quadIn' }) })
+```
+
+`from`: `'start' | 'end' | 'center' | 'edges' | 'random' | index`. With `grid: [rows, columns]` the wave travels by 2D distance (`axis: 'x' | 'y'` for one axis); `rtl: true` mirrors the grid so `'start'` is the top-right cell. `total` spreads all delays over a fixed time; `ease` shapes the distribution.
+
+## Springs, inertia and damping
 
 ```ts
 import { Spring, springs, damp } from '@veyra/core'
@@ -94,6 +128,33 @@ x = damp(x, targetX, 8, delta)
 ```
 
 Springs are solved analytically — exact for any time step, stable at 30 Hz or 240 Hz.
+
+Inertia is the same idea for a thrown object coasting to rest:
+
+```ts
+import { Decay } from '@veyra/core'
+
+const coast = new Decay(0, { timeConstant: 0.325 }).start(x, releaseVelocity)
+coast.target               // where it will stop: value + velocity × timeConstant
+stage.onFrame(({ delta }) => (x = coast.step(delta)))
+```
+
+## FLIP layout transitions
+
+Record where elements are, change the layout any way you like, and they travel from their old boxes to their new ones on transforms:
+
+```ts
+import { flip, captureLayout, flipFrom, stagger } from '@veyra/core'
+
+flip('.card', () => grid.classList.toggle('is-list'), { duration: 0.7, stagger: stagger(0.02, { from: 'center' }) })
+
+// Around asynchronous work:
+const before = captureLayout('.card')
+await renderResults()
+flipFrom(before, { immediate: stage.reducedMotion.value }, '.card')   // include new cards
+```
+
+Size changes animate with scale (`scale: false` keeps content from stretching). Elements that had no box before fade in. Interrupting a running flip starts the next from where elements are on screen. Elements shouldn't carry other rotate/scale transforms.
 
 ## Scroll
 
@@ -139,6 +200,71 @@ Presets: `inView` (`top bottom → bottom top`), `pinned` (`top top → bottom b
 
 `scene.local(a, b)` returns sub-progress within `[a, b]` — one scene can drive many beats. `range(p, a, b)` does the same for any progress.
 
+## Horizontal sections
+
+Vertical scrolling moves a row of panels sideways while the section is pinned — in both reading directions:
+
+```html
+<section class="gallery">                  <!-- height is set for you -->
+  <div class="gallery-pin">                <!-- position: sticky; top: 0; height: 100vh; overflow: hidden -->
+    <div class="gallery-track">…panels…</div>   <!-- display: flex; width: max-content -->
+  </div>
+</section>
+```
+
+```ts
+const h = stage.use(horizontal('.gallery', {
+  snap: true,                      // settle on the nearest panel when scrolling stops
+  speed: 1,                        // vertical px per horizontal px
+  onPanel: (i) => (counter.textContent = String(i + 1)),
+}))
+h.progress; h.travel; h.distance; h.active; h.panelProgress(2)
+h.scrollToPanel(3)
+```
+
+- In a right-to-left section the row travels rightward, so panels still arrive in reading order.
+- Each panel gets `--panel-progress` (`0` entering at the line end → `1` leaving at the line start) for CSS effects.
+- Keyboard focus inside an offscreen panel scrolls the page to that panel.
+- The track defaults to the pin's widest child; in a grid pin, give the column `minmax(0, 1fr)` so the track overflows instead of widening the grid.
+
+## Dragging
+
+```ts
+const d = stage.use(draggable('.track', {
+  axis: 'x',
+  bounds: 'parent',               // or { minX, maxX, minY, maxY }, or a function
+  snap: [0, -320, -640],          // or a step size, or (value, axis) => number
+  keyboard: 'content',            // arrow keys step between snap points, carousel-style
+  onRest: (d) => {},
+}))
+d.x; d.velocityX; d.dragging; d.moving
+d.setPosition(-320, 0)
+d.step(1)
+```
+
+Releases keep their velocity: inertia (`timeConstant`), rubber-band resistance past the bounds (`resistance`), and snapping on a spring seeded with the throw. A click after a drag is swallowed; `touch-action` is set so the page still scrolls on the other axis. Under reduced motion a release lands directly. With `apply: false` nothing is written — drive anything from `onUpdate`.
+
+## Pointer effects: magnetic, tilt, cursor
+
+```ts
+stage.use(magnetic('.cta', { strength: 0.35, radius: 48, inner: '.cta-label' }))
+stage.use(tilt('.card', { max: 8, scale: 1.02, glare: true }))
+stage.use(cursor({ targets: 'a, button, [data-cursor]' }))
+```
+
+- `magnetic` leans an element (and optionally an inner element, further) toward a nearby pointer on springs.
+- `tilt` rotates in 3D toward the pointer; with `glare`, `--tilt-x`, `--tilt-y` and `--tilt-active` drive a CSS highlight. Cards at rest carry no transform.
+- `cursor` creates `.veyra-cursor` (style it in CSS). Over a target it gets `is-active`; a `data-cursor="View"` (or «ببین») becomes its label and `data-cursor-state`. The native cursor stays unless `hideNative: true`.
+- All three are off for touch input and reduced motion.
+
+## Marquee
+
+```ts
+stage.use(marquee('.ticker', { speed: 70, scrollFactor: 0.3, followScroll: true, hoverSpeed: 0 }))
+```
+
+Content travels toward the start of the line — leftward in English, rightward in Persian (`direction: -1` reverses). Copies fill the band seamlessly and are `inert` and hidden from assistive tech. It idles offscreen and stays still under reduced motion.
+
 ## Text splitting
 
 ```ts
@@ -157,6 +283,96 @@ s.revert()
 - Nastaliq (and other vertically cascading styles): split by words, not chars.
 
 Helpers: `shapeClusters(word)`, `joiningType(cp)`, `strongDirection(text)`, `directionOf(el)`, `inlineSign(el)` (`-1` in RTL), `toPersianDigits(n)`, and `drawElementText(el)` — renders an element's text into a canvas with the browser's own line breaks (for Canvas2D or WebGL effects over real, accessible HTML).
+
+## Persian typography: kashida and scramble
+
+**Kashida** stretches the connection between joined letters (tatweel, U+0640) — «کشیده» → «کشـــیده»:
+
+```ts
+import { kashida, elongate, kashidaPoints } from '@veyra/core'
+
+const k = kashida('h1')                       // stretchable element
+k.level = 6                                   // tatweels per word
+stage.timeline().to(k, { level: 8 }, { duration: 1.2, ease: 'drift' }).play()
+stage.scene('#intro', { onProgress: (p) => (k.level = p * 10) })
+
+elongate('کشیده بنویس', 2, { mode: 'spread' })   // plain strings, e.g. for canvas text
+```
+
+Connections come from Unicode joining types: never inside lam-alef, never across ZWNJ, never after a letter that doesn't join forward. They are ranked the way calligraphers usually stretch: after س ش ص ض, then the word's last connection, then later ones. `mode: 'single'` (default) puts the whole stretch on the best connection. While stretched, the original text is exposed through `aria-label`. Use Naskh-style or display faces (Vazirmatn, Estedad, Lalezar); Nastaliq doesn't stretch with tatweel.
+
+**Scramble** decodes text through random glyphs, settling from the start of the line (the right edge in Persian). Glyphs come from each letter's own script — Persian letters for Persian, Latin case-matched for English — and the text stays one shaped run, so Persian keeps joining while it flickers:
+
+```ts
+import { scrambleText } from '@veyra/core'
+
+scrambleText('#title', { duration: 1.4 })                            // plays
+const tl = scrambleText('#title', { paused: true, seed: 3 })         // or scrub it
+stage.scene('#title', { timeline: tl })
+```
+
+## Noise and GLSL
+
+```ts
+import { createNoise, noise2, fbm3 } from '@veyra/core'
+
+const { noise2: wobble } = createNoise(7)       // seeded generator
+el.style.translate = `${wobble(time * 0.4, 0) * 12}px 0`
+const angle = fbm3(x, y, time * 0.1, { octaves: 4 }) * Math.PI * 2
+```
+
+Improved Perlin gradient noise: deterministic per seed, smooth, `0` on integer lattice points, within `[-1, 1]`.
+
+Shader building blocks live in `@veyra/core/glsl` (GLSL ES 3.00 for WebGL2 / three.js). Each export is a string with an include guard, so they combine freely:
+
+```ts
+import { glslNoise, glslSdf, glslColor, glslMath, glslHash } from '@veyra/core/glsl'
+
+const fragmentShader = `
+${glslNoise}
+${glslSdf}
+${glslColor}
+void main() {
+  float d = sdCircle(p, 0.3 + 0.03 * gnoise(vec3(p * 4.0, uTime)));
+  vec3 color = mixOklab(a, b, fillAA(d, fwidth(d)));
+  …
+}`
+```
+
+- `glslHash` — PCG hashes: `pcg`, `pcg2d`, `pcg3d`, `hash11/12/22/13/33`.
+- `glslNoise` — `gnoise(vec2|vec3)`, `fbm(vec2|vec3, octaves)`.
+- `glslSdf` — `sdCircle`, `sdBox`, `sdRoundBox`, `sdSegment`, `sdRing`, `opUnion`, `opSubtract`, `opIntersect`, `opSmoothUnion`, `opSmoothSubtract`, `fillAA(d, aa)`.
+- `glslColor` — `srgbToLinear`, `linearToSrgb`, `linearToOklab`, `oklabToLinear`, `mixOklab`, `cosinePalette`.
+- `glslMath` — `remap`, `remapClamped`, `smootherstep`, `rotate2d`.
+
+## Image sequences
+
+```ts
+const seq = stage.use(imageSequence('#turn', {
+  count: 120,
+  src: (i) => `/frames/turn-${String(i + 1).padStart(3, '0')}.webp`,
+  scene: { trigger: '#product', start: 'top top', end: 'bottom bottom' },
+  fit: 'cover',
+}))
+seq.progress = 0.5        // when no scene drives it
+await seq.ready           // every frame settled
+```
+
+Frames load coarse-to-fine (the ends, every 8th or 16th, then the gaps), so scrubbing works almost at once; until a frame arrives, the nearest loaded one stands in. The canvas resolution follows the quality governor. The canvas is an image: give it `role="img"` and an `aria-label`.
+
+## Visibility, media queries and layout refresh
+
+```ts
+import { whenVisible } from '@veyra/core'
+
+whenVisible('#demo', () => initHeavyDemo(), { rootMargin: '200px' })        // once
+whenVisible(canvas, () => { start(); return () => stop() }, { once: false }) // on every entry/exit
+
+const narrow = stage.media('(max-width: 700px)')   // signal, released with the stage
+narrow.subscribe((on) => menu.classList.toggle('compact', on), { immediate: true })
+
+stage.onRefresh(() => measureMyLayout())           // after resizes, font loading, height changes
+```
 
 ## Preloading
 

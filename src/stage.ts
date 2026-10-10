@@ -8,7 +8,7 @@
  * stage.scene('#intro', { ...scenePresets.pinned, onProgress: (p) => … })
  * ```
  */
-import { mediaSignal, signal, type Signal } from './core/signal.js'
+import { mediaSignal, signal, type ReadonlySignal, type Signal } from './core/signal.js'
 import { getDefaultTicker, Phase, type Frame, type TickFn, type Ticker } from './core/ticker.js'
 import { DebugOverlay, debugRequested } from './debug/overlay.js'
 import { Pointer, type PointerOptions } from './env/pointer.js'
@@ -63,8 +63,16 @@ export interface Stage {
   animate(targets: Targets, vars: TweenVars, options?: TweenOptions & { delay?: number }): Timeline
   /** Runs `fn` every frame in `phase`. */
   onFrame(fn: TickFn, phase?: number): () => void
+  /** A signal mirroring a media query, released with the stage: `stage.media('(max-width: 700px)')`. */
+  media(query: string): ReadonlySignal<boolean>
   /** Re-measures layout and scene ranges (batched to the next frame). */
   refresh(immediate?: boolean): void
+  /**
+   * Calls `fn` whenever the stage re-measures — after resizes, font loading,
+   * document height changes and `refresh()` — before scenes recompute. The
+   * hook for anything that caches layout.
+   */
+  onRefresh(fn: () => void): () => void
   /** Installs an extension, e.g. `stage.use(threeLayer())`. */
   use<T>(plugin: StagePlugin<T>): T
   start(): Stage
@@ -92,6 +100,7 @@ export function createStage(options: StageOptions = {}): Stage {
   const quality = options.quality === false ? null : new QualityGovernor(options.quality)
   const sound = options.sound ? new SoundBus(options.sound === true ? {} : options.sound) : null
   const scenes = new Set<Scene>()
+  const refreshListeners = new Set<() => void>()
   const cleanups: Array<() => void> = []
   let needsRefresh = false
 
@@ -101,6 +110,7 @@ export function createStage(options: StageOptions = {}): Stage {
     needsRefresh = false
     rects.invalidate()
     scroll?.refresh()
+    for (const fn of [...refreshListeners]) fn()
     for (const s of scenes) s.refresh()
   }
 
@@ -192,9 +202,18 @@ export function createStage(options: StageOptions = {}): Stage {
       removers.push(remove)
       return remove
     },
+    media(query) {
+      const m = mediaSignal(query)
+      cleanups.push(() => m.dispose())
+      return m
+    },
     refresh(immediate = false) {
       if (immediate) doRefresh()
       else needsRefresh = true
+    },
+    onRefresh(fn) {
+      refreshListeners.add(fn)
+      return () => refreshListeners.delete(fn)
     },
     use(plugin) {
       return plugin(stage, (fn) => cleanups.push(fn))
@@ -211,6 +230,7 @@ export function createStage(options: StageOptions = {}): Stage {
       for (const r of removers) r()
       for (const s of [...scenes]) s.destroy()
       for (const c of cleanups.splice(0)) c()
+      refreshListeners.clear()
       overlay?.destroy()
       scroll?.destroy()
       pointer?.destroy()

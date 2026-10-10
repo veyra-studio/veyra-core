@@ -36,6 +36,21 @@ describe('createStage', () => {
     stage.destroy()
   })
 
+  it('notifies refresh listeners and releases them with the stage', () => {
+    const stage = createStage({ ticker: manualTicker(), scroll: false, quality: false, autoStart: false })
+    const listener = vi.fn()
+    const off = stage.onRefresh(listener)
+    stage.refresh(true)
+    expect(listener).toHaveBeenCalledTimes(1)
+    off()
+    stage.refresh(true)
+    expect(listener).toHaveBeenCalledTimes(1)
+    stage.onRefresh(listener)
+    stage.destroy()
+    stage.refresh(true)
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
   it('runs plugins with cleanup', () => {
     const stage = createStage({ ticker: manualTicker(), scroll: false, quality: false, autoStart: false })
     const cleanup = vi.fn()

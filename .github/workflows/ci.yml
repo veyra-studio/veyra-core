@@ -1,5 +1,9 @@
 name: CI
 
+# Checks every pull request and push to main. On main, a green build is
+# published to the `release` branch that projects install from GitHub:
+#   "@veyra/core": "github:veyra-studio/veyra-core#release"
+
 on:
   push:
     branches: [main]
@@ -29,3 +33,39 @@ jobs:
         with:
           name: veyra-core-tarball
           path: release/*.tgz
+
+  publish:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-branch
+      cancel-in-progress: false
+    env:
+      # Optional: a fine-grained token with "Contents: read and write" on the
+      # two site repositories lets them rebuild right away. Without it they
+      # pick up the new engine within the hour.
+      SITES_DISPATCH_TOKEN: ${{ secrets.SITES_DISPATCH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Publish the release branch
+        id: release
+        run: node scripts/release-branch.mjs --push
+      - name: Ask the sites to rebuild with the new engine
+        if: steps.release.outputs.changed == 'true' && env.SITES_DISPATCH_TOKEN != ''
+        run: |
+          for repo in abali veyra-studio.github.io; do
+            curl -fsS -X POST \
+              -H "Authorization: Bearer $SITES_DISPATCH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/veyra-studio/$repo/dispatches" \
+              -d '{"event_type":"engine-updated","client_payload":{"commit":"${{ steps.release.outputs.commit }}"}}'
+          done
