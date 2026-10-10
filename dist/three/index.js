@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { Phase } from '../core/ticker.js';
 import { drawElementText } from '../text/draw.js';
+import { isSoftwareRenderer } from '../env/capabilities.js';
 /** Keeps a 3D object positioned (and optionally sized) over a DOM element. */
 export class DomAnchor {
     el;
@@ -57,6 +58,8 @@ export class ThreeLayer {
     scene = new THREE.Scene();
     camera;
     canvas;
+    /** True when WebGL runs in software (no GPU): see `isSoftwareRenderer`. */
+    software;
     /** Viewport size in CSS pixels. */
     width = 1;
     height = 1;
@@ -92,6 +95,9 @@ export class ThreeLayer {
         });
         this.maxDpr = options.maxDpr ?? 2;
         this.autoRender = options.autoRender ?? true;
+        this.software = isSoftwareRenderer(this.renderer.getContext());
+        if (this.software && options.softwareQuality !== false)
+            stage.quality?.set(options.softwareQuality ?? 0);
         this.camera = new THREE.PerspectiveCamera(options.fov ?? 35, 1, 1, 10000);
         this.resize();
         this.cleanups.push(stage.viewport.width.subscribe(() => this.resize()));
@@ -217,7 +223,7 @@ export function threeLayer(options) {
         return layer;
     };
 }
-export { supportsWebGL2 } from '../env/capabilities.js';
+export { isSoftwareRenderer, supportsWebGL2 } from '../env/capabilities.js';
 export { drawElementText } from '../text/draw.js';
 export { Profile } from './profile.js';
 export { studioEnvironment, studioLights } from './studio.js';

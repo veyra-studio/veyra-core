@@ -31,6 +31,11 @@ export interface ThreeLayerOptions {
     autoRender?: boolean;
     /** Upper bound on pixel ratio, on top of the quality governor. Default `2`. */
     maxDpr?: number;
+    /**
+     * On a software renderer (no GPU), start the stage's quality at this level
+     * instead of waiting for slow frames to say so. Default `0`; `false` leaves it.
+     */
+    softwareQuality?: number | false;
     /** Called every frame before rendering. */
     onFrame?: (layer: ThreeLayer, frame: Readonly<Frame>) => void;
 }
@@ -71,6 +76,8 @@ export declare class ThreeLayer {
     readonly scene: THREE.Scene<THREE.Object3DEventMap>;
     readonly camera: THREE.PerspectiveCamera;
     readonly canvas: HTMLCanvasElement;
+    /** True when WebGL runs in software (no GPU): see `isSoftwareRenderer`. */
+    readonly software: boolean;
     /** Viewport size in CSS pixels. */
     width: number;
     height: number;
@@ -107,7 +114,7 @@ export declare class ThreeLayer {
 }
 /** Stage plugin: `const gl = stage.use(threeLayer({ zIndex: -1 }))`. */
 export declare function threeLayer(options?: ThreeLayerOptions): StagePlugin<ThreeLayer>;
-export { supportsWebGL2 } from '../env/capabilities.js';
+export { isSoftwareRenderer, supportsWebGL2 } from '../env/capabilities.js';
 export { drawElementText, type DrawTextOptions } from '../text/draw.js';
 export { Profile, type Band, type BandOptions, type ProfileOptions, type ProfilePoint } from './profile.js';
 export { studioEnvironment, studioLights, type StudioLight, type StudioOptions } from './studio.js';
