@@ -261,3 +261,8 @@ export function threeLayer(options?: ThreeLayerOptions): StagePlugin<ThreeLayer>
 
 export { supportsWebGL2 } from '../env/capabilities.js'
 export { drawElementText, type DrawTextOptions } from '../text/draw.js'
+export { Profile, type Band, type BandOptions, type ProfileOptions, type ProfilePoint } from './profile.js'
+export { studioEnvironment, studioLights, type StudioLight, type StudioOptions } from './studio.js'
+export { condensationField, condensationMaps, type CondensationField, type CondensationMaps, type CondensationOptions } from './condensation.js'
+export { ContactShadow, type ContactShadowOptions } from './shadow.js'
+export { ReflectiveFloor, type ReflectiveFloorOptions } from './floor.js'
