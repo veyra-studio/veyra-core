@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { bakeOcclusion, bakeSunlight, createStage, erodedNoise, heightfield, Phase, ridgedNoise } from '@veyra/core'
 import { glslNoiseTexture } from '@veyra/core/glsl'
-import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, refractiveSolid, studioEnvironment, threeLayer } from '@veyra/core/three'
+import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, refractiveSolid, studioEnvironment, threeLayer, warmUp } from '@veyra/core/three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 
 const stage = createStage({ quality: { dprRange: [1, 2] } })
@@ -106,6 +106,9 @@ scene.add(floor.mesh)
 const shadow = new ContactShadow({ width: 1, depth: 1, far: 1, opacity: 0.85 })
 shadow.cast(bottle)
 scene.add(shadow.object)
+
+// Compile and upload before the first frame shows it.
+void warmUp(renderer, scene, camera).then(() => (status.warmed = true))
 
 const slot = document.getElementById('slot')!
 stage.rects.track(slot, { live: true })
