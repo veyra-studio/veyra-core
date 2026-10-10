@@ -219,4 +219,10 @@ export function threeLayer(options) {
 }
 export { supportsWebGL2 } from '../env/capabilities.js';
 export { drawElementText } from '../text/draw.js';
+export { Profile } from './profile.js';
+export { studioEnvironment, studioLights } from './studio.js';
+export { condensationField, condensationMaps } from './condensation.js';
+export { ContactShadow } from './shadow.js';
+export { ReflectiveFloor } from './floor.js';
+export { heightfieldGeometry, meshGeometry } from './terrain.js';
 //# sourceMappingURL=index.js.map

@@ -21,6 +21,7 @@ export class SoundBus {
     master = null;
     volume;
     key;
+    noiseCache = new Map();
     cleanups = [];
     constructor(options = {}) {
         this.key = options.storageKey ?? 'veyra:sound';
@@ -144,12 +145,80 @@ export class SoundBus {
         }
         return buffer;
     }
+    /**
+     * A synthesized tone with an exponential envelope and an optional pitch
+     * glide — ticks, pings, the ring of a cap, a thump. No-op when silent.
+     */
+    tone(options) {
+        const ctx = this.ctx;
+        if (!ctx || !this.master || !this.audible)
+            return;
+        const t = ctx.currentTime + (options.delay ?? 0);
+        const attack = options.attack ?? 0.004;
+        const decay = options.decay ?? 0.2;
+        const o = ctx.createOscillator();
+        o.type = options.type ?? 'sine';
+        o.frequency.setValueAtTime(options.frequency, t);
+        if (options.to !== undefined)
+            o.frequency.exponentialRampToValueAtTime(Math.max(1, options.to), t + attack + decay);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0001, options.gain ?? 0.2), t + attack);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+        o.connect(g).connect(this.route(ctx, options.pan));
+        o.start(t);
+        o.stop(t + attack + decay + 0.05);
+    }
+    /**
+     * A filtered noise burst — clicks, hisses, thuds, whooshes, the pop of a
+     * cap. No-op when silent.
+     */
+    burst(options) {
+        const ctx = this.ctx;
+        if (!ctx || !this.master || !this.audible)
+            return;
+        const color = options.color ?? 'white';
+        let buffer = this.noiseCache.get(color);
+        if (!buffer) {
+            buffer = this.noise(2, color) ?? undefined;
+            if (!buffer)
+                return;
+            this.noiseCache.set(color, buffer);
+        }
+        const t = ctx.currentTime + (options.delay ?? 0);
+        const attack = options.attack ?? 0.004;
+        const decay = options.decay ?? 0.3;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const f = ctx.createBiquadFilter();
+        f.type = options.filter ?? 'bandpass';
+        f.Q.value = options.q ?? 1;
+        f.frequency.setValueAtTime(options.from, t);
+        if (options.to !== undefined)
+            f.frequency.exponentialRampToValueAtTime(Math.max(1, options.to), t + attack + decay);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0001, options.gain ?? 0.2), t + attack);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+        src.connect(f).connect(g).connect(this.route(ctx, options.pan));
+        src.start(t, Math.random() * Math.max(0, buffer.duration - attack - decay - 0.1));
+        src.stop(t + attack + decay + 0.05);
+    }
     destroy() {
         for (const c of this.cleanups)
             c();
         void this.ctx?.close();
         this.ctx = null;
         this.master = null;
+    }
+    /** The master bus, or a panner in front of it. */
+    route(ctx, pan) {
+        if (pan === undefined || !('createStereoPanner' in ctx))
+            return this.master;
+        const panner = ctx.createStereoPanner();
+        panner.pan.value = pan;
+        panner.connect(this.master);
+        return panner;
     }
     async resume() {
         const ctx = this.context;

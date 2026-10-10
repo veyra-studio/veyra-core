@@ -19,6 +19,46 @@ export interface PlayOptions {
     /** Seconds from now. */
     delay?: number;
 }
+export interface ToneOptions {
+    /** Start frequency in Hz. */
+    frequency: number;
+    /** End frequency for an exponential glide. Default: no glide. */
+    to?: number;
+    /** Default `'sine'`. */
+    type?: OscillatorType;
+    /** Peak gain. Default `0.2`. */
+    gain?: number;
+    /** Attack in seconds. Default `0.004`. */
+    attack?: number;
+    /** Decay in seconds (exponential, to silence). Default `0.2`. */
+    decay?: number;
+    /** Seconds from now. Default `0`. */
+    delay?: number;
+    /** Stereo pan `-1…1`. */
+    pan?: number;
+}
+export interface BurstOptions {
+    /** Filter type. Default `'bandpass'`. */
+    filter?: BiquadFilterType;
+    /** Filter frequency at the start, in Hz. */
+    from: number;
+    /** Filter frequency at the end (exponential sweep). Default: `from`. */
+    to?: number;
+    /** Filter Q. Default `1`. */
+    q?: number;
+    /** Peak gain. Default `0.2`. */
+    gain?: number;
+    /** Attack in seconds. Default `0.004`. */
+    attack?: number;
+    /** Decay in seconds (exponential, to silence). Default `0.3`. */
+    decay?: number;
+    /** Seconds from now. Default `0`. */
+    delay?: number;
+    /** Noise color. Default `'white'`. */
+    color?: 'white' | 'pink';
+    /** Stereo pan `-1…1`. */
+    pan?: number;
+}
 export declare class SoundBus {
     /** Whether the visitor wants sound. */
     readonly enabled: Signal<boolean>;
@@ -26,6 +66,7 @@ export declare class SoundBus {
     private master;
     private readonly volume;
     private readonly key;
+    private readonly noiseCache;
     private readonly cleanups;
     constructor(options?: SoundOptions);
     /** The audio context, created lazily. `null` outside the browser. */
@@ -45,7 +86,19 @@ export declare class SoundBus {
     load(url: string): Promise<AudioBuffer>;
     /** A buffer of noise — the raw material for synthesized fizz, wind, hiss. */
     noise(seconds?: number, color?: 'white' | 'pink'): AudioBuffer | null;
+    /**
+     * A synthesized tone with an exponential envelope and an optional pitch
+     * glide — ticks, pings, the ring of a cap, a thump. No-op when silent.
+     */
+    tone(options: ToneOptions): void;
+    /**
+     * A filtered noise burst — clicks, hisses, thuds, whooshes, the pop of a
+     * cap. No-op when silent.
+     */
+    burst(options: BurstOptions): void;
     destroy(): void;
+    /** The master bus, or a panner in front of it. */
+    private route;
     private resume;
     private persist;
 }
