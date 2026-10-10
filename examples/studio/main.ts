@@ -219,6 +219,18 @@ const sample = (x: number, y: number) => {
 }
 const slotRect = () => stage.rects.view(slot)
 
+// For the browser checks: the empty neck's alpha over the transparent canvas,
+// with three.js's half-white fill and with see-through glass.
+status.neckAlpha = () => {
+  const r = slotRect()
+  const at = () => sample(r.left + r.width / 2, r.top + r.height * 0.1)[3]
+  layer.seeThroughGlass = false
+  const milky = at()
+  layer.seeThroughGlass = true
+  const clear = at()
+  layer.seeThroughGlass = false
+  return { milky, clear }
+}
 status.software = layer.software
 status.tier = stage.quality?.tier.value
 Object.assign(window, { __ex: { status, stage, sample, slotRect } })
