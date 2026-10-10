@@ -9,8 +9,11 @@
 // 3. Drop `devDependencies` and `scripts` from package.json, so installing
 //    from git neither builds nor pulls the test toolchain; record the source
 //    commit as `gitHead`.
-// 4. Commit when something changed (history is kept, so commits pinned in
-//    project lockfiles stay fetchable) and tag `v<version>` the first time a
+// 4. Commit only when the package itself changed (history is kept, so
+//    commits pinned in project lockfiles stay fetchable). A source commit
+//    that leaves the packed files alone (docs, tests, CI) publishes nothing,
+//    so projects don't rebuild for it, and `gitHead` keeps naming the commit
+//    the current package was built from. Tag `v<version>` the first time a
 //    version ships.
 // 5. With --push, push the branch and the new tag.
 //
@@ -39,6 +42,15 @@ const tryGit = (cwd, ...cmd) => {
     return null
   }
 }
+/** The source commit a release worktree was built from, if it records one. */
+const readGitHead = (dir) => {
+  try {
+    const { gitHead } = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    return typeof gitHead === 'string' ? gitHead : undefined
+  } catch {
+    return undefined
+  }
+}
 
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const source = git(root, 'rev-parse', 'HEAD')
@@ -64,6 +76,7 @@ try {
     git(work, 'checkout', '--orphan', tempBranch)
     createdTempBranch = true
   }
+  const previous = exists ? readGitHead(work) : undefined
   // Start from an empty tree: unstage everything, then remove the files.
   git(work, 'rm', '-r', '-q', '--cached', '--ignore-unmatch', '.')
   git(work, 'clean', '-fdxq')
@@ -73,13 +86,18 @@ try {
   const manifest = JSON.parse(readFileSync(join(work, 'package.json'), 'utf8'))
   delete manifest.devDependencies
   delete manifest.scripts
-  manifest.gitHead = source
-  writeFileSync(join(work, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+  const stage = (gitHead) => {
+    manifest.gitHead = gitHead
+    writeFileSync(join(work, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+    git(work, 'add', '-A')
+  }
 
-  // 4. Commit when changed; tag a new version.
-  git(work, 'add', '-A')
+  // 4. Commit only when the package changed: compare with the previous
+  //    gitHead in place, then record this source commit. Tag a new version.
+  stage(previous ?? source)
   const changed = tryGit(work, 'diff', '--cached', '--quiet') === null
   if (changed) {
+    stage(source)
     git(work, ...identity, 'commit', '-q', '-m', `Release ${pkg.version} from ${source.slice(0, 7)}`, '-m', `Built from veyra-core@${source}.`)
   }
   const commit = git(work, 'rev-parse', 'HEAD')
@@ -91,7 +109,8 @@ try {
     if (changed) git(work, 'push', remote, `HEAD:refs/heads/${branch}`)
     if (!tagExists) git(work, 'push', remote, `refs/tags/${tag}`)
   }
-  console.log(`${changed ? 'Committed' : 'No changes for'} ${branch} @ ${commit.slice(0, 7)} — @veyra/core ${pkg.version}${tagExists ? '' : `, tagged ${tag}`}${push ? '' : ' (not pushed)'}`)
+  const state = changed ? `Committed ${branch}` : `No package changes for ${branch} (built from ${(previous ?? source).slice(0, 7)})`
+  console.log(`${state} @ ${commit.slice(0, 7)} — @veyra/core ${pkg.version}${tagExists ? '' : `, tagged ${tag}`}${push ? '' : ' (not pushed)'}`)
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\ncommit=${commit}\nversion=${pkg.version}\n`)
 } finally {
   tryGit(root, 'worktree', 'remove', '--force', work)
