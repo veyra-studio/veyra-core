@@ -266,3 +266,4 @@ export { studioEnvironment, studioLights, type StudioLight, type StudioOptions }
 export { condensationField, condensationMaps, type CondensationField, type CondensationMaps, type CondensationOptions } from './condensation.js'
 export { ContactShadow, type ContactShadowOptions } from './shadow.js'
 export { ReflectiveFloor, type ReflectiveFloorOptions } from './floor.js'
+export { heightfieldGeometry, meshGeometry, type HeightfieldGeometryOptions } from './terrain.js'

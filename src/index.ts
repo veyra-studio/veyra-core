@@ -10,6 +10,7 @@ export * from './core/ease.js'
 export * from './core/signal.js'
 export * from './core/ticker.js'
 export * from './core/noise.js'
+export * from './core/terrain.js'
 
 export * from './motion/spring.js'
 export * from './motion/values.js'
