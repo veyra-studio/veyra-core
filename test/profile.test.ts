@@ -87,4 +87,16 @@ describe('Profile', () => {
     expect(maxV).toBeCloseTo(1, 6)
     expect(band.geometry.index!.count).toBe(16 * 8 * 6)
   })
+
+  it('accepts points from another copy of three.js (by shape, not instanceof)', () => {
+    const foreign = [
+      { x: 0, y: 0 },
+      { x: 0.1, y: 0 },
+      { x: 0.1, y: 0.5 },
+      { x: 0.05, y: 1 },
+    ]
+    const p = new Profile(foreign as unknown as ConstructorParameters<typeof Profile>[0], { samples: 1 })
+    expect(p.radiusAt(0.25)).toBeCloseTo(0.1, 6)
+    expect(p.points.every((v) => Number.isFinite(v.x) && Number.isFinite(v.y))).toBe(true)
+  })
 })

@@ -187,7 +187,8 @@ try {
     const moving = await page.$$eval('#tiles li', (lis) => lis.filter((li) => li.style.transform && li.style.transform !== 'none').length)
     check(moving > 0, `FLIP animates tiles to the list layout (${moving} moving)`)
     await page.screenshot({ path: `${OUT}interaction-flip.png` })
-    await wait(page, 1400)
+    // The transition takes about a second; on a loaded machine, longer.
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#tiles li')).every((li) => !li.style.transform || li.style.transform === 'none'), null, { timeout: 6000 }).catch(() => {})
     const settled = await page.$$eval('#tiles li', (lis) => lis.every((li) => !li.style.transform || li.style.transform === 'none'))
     const listed = await page.$eval('#tiles', (el) => el.classList.contains('is-list'))
     check(settled && listed, 'FLIP leaves no transforms once settled')
@@ -307,6 +308,8 @@ try {
     check(probe.body[3] > 240 && probe.body[0] > probe.body[2] + 30, `bottle renders, its red liquid seen through the glass (rgba ${probe.body.join(', ')})`)
     check(probe.near[3] > probe.far[3] + 10 && probe.near[3] > 20, `floor reflects the bottle and fades with height (alpha ${probe.near[3]} near → ${probe.far[3]} far)`)
     check(probe.contact[3] > 20, `contact shadow darkens the floor at the foot (alpha ${probe.contact[3]})`)
+    const neck = await page.evaluate(() => window.__ex.status.neckAlpha())
+    check(neck.clear < neck.milky && neck.clear < 100, `see-through glass shows the page behind the empty neck (alpha ${neck.milky} → ${neck.clear})`)
     await page.screenshot({ path: `${OUT}studio-product.png` })
     const terrain = await page.evaluate(() => window.__ex.status.terrain)
     check(terrain.shadowed > 0.03 && terrain.shadowed < 0.8, `terrain bake casts mountain shadows (${(terrain.shadowed * 100).toFixed(0)}% of samples in shadow, ${terrain.ms} ms)`)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3 — 2026-10-10
+
+- **See-through glass** (`ThreeLayer` option and property `seeThroughGlass`): over a transparent canvas, transmissive materials show the page behind the canvas instead of three.js's half-transparent white fill, which turned clear glass and ice milky over a dark page. Example 07 checks the empty neck's alpha with and without it.
+- **Fix**: `Profile` reads `{x, y}` points by shape instead of `instanceof THREE.Vector2`, so points made by another copy of three.js (a project aliasing the engine's source) no longer collapse.
+
 ## 0.4.2 — 2026-10-10
 
 - **Software rendering** (`isSoftwareRenderer`; `ThreeLayer.software`, `softwareQuality`): WebGL rendered without a GPU (SwiftShader, llvmpipe, the Basic Render Driver) is detected, and the three.js layer starts the stage's quality at its lowest level instead of waiting for slow frames to say so.
