@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2 — 2026-10-10
+
+- **Software rendering** (`isSoftwareRenderer`; `ThreeLayer.software`, `softwareQuality`): WebGL rendered without a GPU (SwiftShader, llvmpipe, the Basic Render Driver) is detected, and the three.js layer starts the stage's quality at its lowest level instead of waiting for slow frames to say so.
+- Example checks: the kashida check waits for the page's opening animation to finish, and the horizontal-section checks poll until the snap has landed — both were timing-dependent on a loaded machine. A new check confirms software rendering is detected under SwiftShader.
+
 ## 0.4.1 — 2026-10-10
 
 - **Fix — adaptive quality on very slow devices**: the governor ignored every frame longer than 250 ms as a stall, so a device that could only manage a few frames per second (a software renderer, a far too heavy scene) never had its quality lowered. An isolated long frame is still ignored; three in a row now drop the level to its minimum at once (it climbs back as usual when frames speed up).
