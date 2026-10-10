@@ -35,6 +35,8 @@ npm run engine:update          # extracts ../veyra-core/release/veyra-core-<late
 git add vendor package.json package-lock.json && git commit -m "Update Veyra Core to <version>"
 ```
 
+Commit everything under `vendor/veyra-core/`, including its `dist/`: CI installs the engine from there. Anchor build-output patterns in the project's `.gitignore` to the root (`/dist/`, not `dist/`, which also matches `vendor/veyra-core/dist/`). `engine:update` stops with an error when a vendored file is ignored.
+
 ## Co-developing engine and project
 
 To work on the engine while seeing changes live in a project, point the project's Vite config at the engine source:
