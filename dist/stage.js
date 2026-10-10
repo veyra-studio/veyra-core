@@ -8,7 +8,7 @@
  * stage.scene('#intro', { ...scenePresets.pinned, onProgress: (p) => … })
  * ```
  */
-import { mediaSignal, signal } from './core/signal.js';
+import { computed, mediaSignal, signal } from './core/signal.js';
 import { getDefaultTicker, Phase } from './core/ticker.js';
 import { DebugOverlay, debugRequested } from './debug/overlay.js';
 import { Pointer } from './env/pointer.js';
@@ -32,10 +32,11 @@ export function createStage(options = {}) {
     };
     reflectReduced(reducedMotion.value);
     const stopReflect = reducedMotion.subscribe(reflectReduced);
-    const scroll = options.scroll === false ? null : new ScrollController(options.scroll ?? {}, { reducedMotion, touch: viewport.touch });
+    const quality = options.quality === false ? null : new QualityGovernor(options.quality);
+    const slow = quality ? computed([quality.tier], (t) => t === 'low') : undefined;
+    const scroll = options.scroll === false ? null : new ScrollController(options.scroll ?? {}, { reducedMotion, touch: viewport.touch, slow });
     const readScroll = () => (scroll ? scroll.y : typeof window === 'undefined' ? 0 : window.scrollY);
     const rects = new RectCache(readScroll);
-    const quality = options.quality === false ? null : new QualityGovernor(options.quality);
     const sound = options.sound ? new SoundBus(options.sound === true ? {} : options.sound) : null;
     const scenes = new Set();
     const refreshListeners = new Set();
@@ -179,6 +180,7 @@ export function createStage(options = {}) {
             refreshListeners.clear();
             overlay?.destroy();
             scroll?.destroy();
+            slow?.dispose();
             pointer?.destroy();
             viewport.destroy();
             sound?.destroy();

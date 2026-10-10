@@ -22,6 +22,7 @@ export class ScrollController {
     lambda;
     wheelMultiplier;
     wantSmooth;
+    nativeWhenSlow;
     nativeSelector;
     smoothing = false;
     animation = null;
@@ -34,6 +35,7 @@ export class ScrollController {
     deps;
     constructor(options = {}, deps = {}) {
         this.wantSmooth = options.smooth ?? true;
+        this.nativeWhenSlow = options.nativeWhenSlow ?? true;
         this.lambda = options.lambda ?? lerpToLambda(0.1);
         this.wheelMultiplier = options.wheelMultiplier ?? 1;
         this.nativeSelector = options.nativeSelector ?? '[data-veyra-native-scroll]';
@@ -63,7 +65,7 @@ export class ScrollController {
     }
     /** Whether wheel smoothing is currently active. */
     get smooth() {
-        return this.wantSmooth && !this.deps.reducedMotion?.value && !this.deps.touch?.value;
+        return this.wantSmooth && !this.deps.reducedMotion?.value && !this.deps.touch?.value && !(this.nativeWhenSlow && this.deps.slow?.value);
     }
     /** Scroll progress through the whole document, `0…1`. */
     get progress() {

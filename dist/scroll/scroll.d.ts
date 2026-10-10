@@ -19,6 +19,12 @@ export interface ScrollOptions {
     nativeSelector?: string;
     /** Intercept same-page anchor links to scroll smoothly and move focus. Default `true`. */
     anchors?: boolean;
+    /**
+     * Leave the wheel to the browser while the device is struggling (the
+     * stage's quality at its lowest tier): smoothing can't look smooth at a
+     * low frame rate, and native scrolling stays responsive. Default `true`.
+     */
+    nativeWhenSlow?: boolean;
 }
 export interface ScrollToOptions {
     /** Added to the resolved position (px). */
@@ -32,6 +38,8 @@ export interface ScrollToOptions {
 export interface ScrollDeps {
     reducedMotion?: ReadonlySignal<boolean>;
     touch?: ReadonlySignal<boolean>;
+    /** True while the device can't keep up (see `nativeWhenSlow`). */
+    slow?: ReadonlySignal<boolean>;
 }
 export type ScrollListener = (scroll: ScrollController) => void;
 export declare class ScrollController {
@@ -48,6 +56,7 @@ export declare class ScrollController {
     lambda: number;
     wheelMultiplier: number;
     private readonly wantSmooth;
+    private readonly nativeWhenSlow;
     private readonly nativeSelector;
     private smoothing;
     private animation;

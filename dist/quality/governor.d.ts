@@ -7,16 +7,27 @@ export interface QualityOptions {
     min?: number;
     /** Highest allowed level. Default `1`. */
     max?: number;
-    /** Frames per evaluation window. Default `45`. */
+    /** Frames per evaluation window. Default `30`. */
     window?: number;
     /** Target as a fraction of the detected refresh rate. Default `0.86`. */
     targetRatio?: number;
+    /**
+     * Lowest refresh rate assumed, in Hz. Frame times can't tell a 30 Hz
+     * screen from a device that only manages 30 fps on a 60 Hz one, so the
+     * governor never settles for less than this. Default `60`.
+     */
+    minRefreshRate?: number;
     /** Device-pixel-ratio range mapped from level. Default `[1, 2]`. */
     dprRange?: [number, number];
     /** Disable adaptation (level stays at `initial`). Default `true`. */
     adaptive?: boolean;
 }
-/** Estimates a starting level from hardware hints. */
+/**
+ * Estimates a starting level from hardware hints. Phones and tablets
+ * (a coarse pointer) start in the middle: their GPUs are far weaker than
+ * desktops' and their screens dense, and an octa-core CPU says little about
+ * either. The governor climbs from there when frames have headroom.
+ */
 export declare function estimateQuality(): number;
 export declare class QualityGovernor {
     /** Continuous quality level, `0…1`. */
@@ -41,6 +52,8 @@ export declare class QualityGovernor {
     set(level: number): void;
     /** Feeds one frame's real duration in seconds. Called by the stage every frame. */
     sample(rawDelta: number): void;
+    /** How far to step down at `fps`, far below target: further the slower it is. */
+    private drop;
     private step;
     private toTier;
     private toDpr;

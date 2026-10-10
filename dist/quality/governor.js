@@ -6,21 +6,27 @@
  */
 import { clamp, lerp } from '../core/math.js';
 import { signal } from '../core/signal.js';
-/** Estimates a starting level from hardware hints. */
+/**
+ * Estimates a starting level from hardware hints. Phones and tablets
+ * (a coarse pointer) start in the middle: their GPUs are far weaker than
+ * desktops' and their screens dense, and an octa-core CPU says little about
+ * either. The governor climbs from there when frames have headroom.
+ */
 export function estimateQuality() {
     if (typeof navigator === 'undefined')
         return 0.75;
     const nav = navigator;
-    let level = 0.75;
+    const coarse = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
     const cores = nav.hardwareConcurrency ?? 4;
+    let level = coarse ? 0.55 : 0.75;
     if (cores <= 4)
         level -= 0.15;
-    if (cores >= 8)
+    if (cores >= 8 && !coarse)
         level += 0.1;
-    if (nav.deviceMemory !== undefined && nav.deviceMemory <= 4)
+    if (nav.deviceMemory !== undefined && nav.deviceMemory <= 2)
+        level -= 0.3;
+    else if (nav.deviceMemory !== undefined && nav.deviceMemory <= 4)
         level -= 0.15;
-    if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches)
-        level -= 0.1;
     if (nav.connection?.saveData)
         level -= 0.25;
     return clamp(level);
@@ -45,8 +51,9 @@ export class QualityGovernor {
         this.opts = {
             min: options.min ?? 0,
             max: options.max ?? 1,
-            window: options.window ?? 45,
+            window: options.window ?? 30,
             targetRatio: options.targetRatio ?? 0.86,
+            minRefreshRate: options.minRefreshRate ?? 60,
             dprRange: options.dprRange ?? [1, 2],
             adaptive: options.adaptive ?? true,
         };
@@ -92,8 +99,14 @@ export class QualityGovernor {
                 const sorted = [...this.warmup].sort((a, b) => a - b);
                 const median = sorted[30];
                 const hz = 1 / median;
-                // Snap to common refresh rates.
-                this.refreshRate = [30, 48, 60, 75, 90, 100, 120, 144, 165, 240].reduce((best, r) => (Math.abs(r - hz) < Math.abs(best - hz) ? r : best), 60);
+                // Snap to common refresh rates, never below the floor: slow frames
+                // here more likely mean a struggling device than a slow screen.
+                const snapped = [30, 48, 60, 75, 90, 100, 120, 144, 165, 240].reduce((best, r) => (Math.abs(r - hz) < Math.abs(best - hz) ? r : best), 60);
+                this.refreshRate = Math.max(this.opts.minRefreshRate, snapped);
+                // Already far too slow while warming up: step down now rather than
+                // after more windows of slow frames.
+                if (this.opts.adaptive && hz < this.target * 0.6)
+                    this.step(-this.drop(hz));
             }
             return;
         }
@@ -109,7 +122,13 @@ export class QualityGovernor {
         const avg = this.samples.reduce((a, b) => a + b, 0) / this.samples.length;
         this.samples = [];
         const fps = 1 / avg;
-        if (fps < this.target) {
+        if (fps < this.target * 0.6) {
+            // Far too slow: don't wait for a second window.
+            this.goodWindows = 0;
+            this.badWindows = 0;
+            this.step(-this.drop(fps));
+        }
+        else if (fps < this.target) {
             this.goodWindows = 0;
             if (++this.badWindows >= 2) {
                 this.badWindows = 0;
@@ -128,6 +147,10 @@ export class QualityGovernor {
             this.badWindows = 0;
             this.goodWindows = 0;
         }
+    }
+    /** How far to step down at `fps`, far below target: further the slower it is. */
+    drop(fps) {
+        return fps < this.target * 0.4 ? 0.4 : 0.25;
     }
     step(amount) {
         const next = clamp(this.level.value + amount, this.opts.min, this.opts.max);
