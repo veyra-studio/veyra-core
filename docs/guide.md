@@ -26,6 +26,7 @@ Everything is exported from `@veyra/core`; three.js helpers from `@veyra/core/th
 - [Reduced motion](#reduced-motion)
 - [three.js layer](#threejs-layer)
 - [Product rendering: turned shapes, labels, studio light](#product-rendering-turned-shapes-labels-studio-light)
+- [Clear solids: ray-traced ice and glass](#clear-solids-ray-traced-ice-and-glass)
 - [Debugging](#debugging)
 - [Recipes](#recipes)
 
@@ -535,6 +536,39 @@ stage.onFrame(() => {
 - `ReflectiveFloor` fades and blurs the reflection with the height of what it reflects, reconstructed from depth, so it looks right at grazing camera angles. `setFade(start, end)` and `strength` can change per frame.
 - `ContactShadow` renders casters from below as depth and blurs it. Move it with `object.position`, size it with `resize(width, depth, far)`; don't scale `object`.
 - Transmissive glass refracts only opaque objects: keep liquids and labels opaque. In three.js, `thickness` is in local units (it is scaled by the model matrix); `attenuationDistance` is in world units.
+
+## Clear solids: ray-traced ice and glass
+
+`refractiveSolid(material, options)` turns a `MeshPhysicalMaterial` into a clear solid traced from the inside. The mesh gives the entry point and normal; a signed distance function in GLSL describes the solid for the rays inside. Each view ray refracts in, runs to the far side, refracts out — or, past the critical angle, reflects back in and tries again — and samples what lies beyond. That is what draws the bright and dark edges of real ice and glass. There is no transmission pass, so nothing depends on what the canvas shows behind the mesh: clear glass works over a transparent canvas on a dark page.
+
+```ts
+import { refractiveSolid } from '@veyra/core/three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
+
+const material = new THREE.MeshPhysicalMaterial({ color: 0x000000, specularIntensity: 0, transparent: true })
+const block = refractiveSolid(material, {
+  // Object space, negative inside. A rounded box: half extents 0.06, edge radius 0.015.
+  sdf: `float solidSdf(vec3 p) {
+    vec3 d = abs(p) - vec3(0.045);
+    return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), 0.0) - 0.015;
+  }`,
+  bounds: new THREE.Vector3(0.06, 0.06, 0.06),     // holds the solid
+  inner: new THREE.Vector3(0.053, 0.053, 0.053),   // lies inside it (optional, faster)
+  ior: 1.5,
+  absorption: [9, 3, 6],                           // per object unit: a green tint
+  // What a ray sees once it leaves, in world space: the studio and a light behind the set.
+  outside: `vec3 solidOutside(vec3 position, vec3 direction) {
+    return solidEnvironment(direction, 0.0) + vec3(0.9) * pow(max(-direction.z, 0.0), 4.0);
+  }`,
+})
+scene.add(new THREE.Mesh(new RoundedBoxGeometry(0.12, 0.12, 0.12, 4, 0.015), material))
+block.uniforms.solidIor.value = 1.33                // uniforms can change per frame
+```
+
+- Keep the material's `color` black and `specularIntensity` 0: the traced light replaces its shading, and the surface reflects `solidOutside` too (Fresnel-weighted; `reflection: false` to leave it out). `transparent: true` keeps the solid out of three.js's transmission pre-pass (which other glass in the scene triggers), so it isn't traced twice; it still writes depth.
+- Hooks, each a GLSL function you define: `outside` → `vec3 solidOutside(vec3 position, vec3 direction)` (world space; `solidEnvironment(direction, roughness)` reads the environment map, `vSolidOrigin` and `vSolidBasis` give the object's place and axes) · `inside` → `void solidInside(vec3 p, vec3 d, float len, int bounce, inout vec3 light, inout vec3 through)`, called for each straight run inside (object space; `bounce` 0 is the run from the eye): add mist, bubbles or cracks · `bump` → `vec3 solidBump(vec3 p, vec3 n)` for relief too fine for the mesh · `normal` → `vec3 solidNormal(vec3 p)`, an analytic normal instead of four more SDF evaluations. Declare the uniforms they use and pass them in `uniforms`.
+- Cost: every pixel of the solid runs `bounces` exits (default 3), each a bisection of `steps` SDF evaluations (10, or 6 with `inner`) plus the hooks. Keep hooks cheap — a few sines rather than noise — and lower `bounces` on weak devices. The solid should be convex, or nearly: each exit is searched between a point inside and the far side of `bounds`.
+- Units: object space for the SDF, `bounds`, `inner`, `absorption` and `inside`; world space for `outside`.
 
 ## Debugging
 

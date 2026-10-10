@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { bakeOcclusion, bakeSunlight, createStage, erodedNoise, heightfield, Phase, ridgedNoise } from '@veyra/core'
 import { glslNoiseTexture } from '@veyra/core/glsl'
-import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, studioEnvironment, threeLayer } from '@veyra/core/three'
+import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, refractiveSolid, studioEnvironment, threeLayer } from '@veyra/core/three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 
 const stage = createStage({ quality: { dprRange: [1, 2] } })
 const status: Record<string, unknown> = {}
@@ -74,6 +75,27 @@ art.height = Math.round(1024 / (band.width / band.height))
 const labelTex = new THREE.CanvasTexture(art)
 labelTex.colorSpace = THREE.SRGBColorSpace
 bottle.add(new THREE.Mesh(band.geometry, new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.5 })))
+// A block of tinted glass beside it, ray-traced from the inside: the studio's
+// strips bend through it, its edges turn bright and dark past the critical
+// angle, and a soft light behind the set (out of frame) makes it glow.
+const blockMaterial = new THREE.MeshPhysicalMaterial({ color: 0x000000, specularIntensity: 0, transparent: true })
+const block = refractiveSolid(blockMaterial, {
+  sdf: /* glsl */ `float solidSdf(vec3 p) {
+    vec3 d = abs(p) - vec3(0.045);
+    return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), 0.0) - 0.015;
+  }`,
+  outside: /* glsl */ `vec3 solidOutside(vec3 position, vec3 direction) {
+    return solidEnvironment(direction, 0.0) + vec3(0.9) * pow(max(-direction.z, 0.0), 4.0);
+  }`,
+  bounds: new THREE.Vector3(0.06, 0.06, 0.06),
+  inner: new THREE.Vector3(0.053, 0.053, 0.053),
+  ior: 1.5,
+  absorption: [9, 3, 6],
+})
+const blockMesh = new THREE.Mesh(new RoundedBoxGeometry(0.12, 0.12, 0.12, 4, 0.015), blockMaterial)
+blockMesh.position.set(0.24, 0.06, 0.16)
+blockMesh.rotation.y = 0.5
+bottle.add(blockMesh)
 scene.add(bottle)
 
 const REFLECT = 3
@@ -230,6 +252,19 @@ status.neckAlpha = () => {
   const clear = at()
   layer.seeThroughGlass = false
   return { milky, clear }
+}
+// For the browser checks: the glass block's middle, tinted by the glass the
+// light crossed, and as clear glass.
+status.solid = () => {
+  const c = blockMesh.getWorldPosition(new THREE.Vector3()).project(camera)
+  const at = () => sample(((c.x + 1) / 2) * layer.width, ((1 - c.y) / 2) * layer.height)
+  const absorption = block.uniforms.solidAbsorption!.value as THREE.Vector3
+  const tinted = at()
+  const saved = absorption.clone()
+  absorption.set(0, 0, 0)
+  const clear = at()
+  absorption.copy(saved)
+  return { tinted, clear }
 }
 status.software = layer.software
 status.tier = stage.quality?.tier.value

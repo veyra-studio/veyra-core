@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-10-10
+
+Clear solids. Additive: 0.4 code keeps working.
+
+- **Ray-traced clear solids** (`refractiveSolid` in `@veyra/core/three`): patches a `MeshPhysicalMaterial` so light is traced through a solid given as a signed distance function — refraction in and out, internal reflection past the critical angle (the bright and dark edges of real glass and ice), Beer–Lambert tint, and a surface that reflects the same world. Hooks for what the rays see once they leave (`outside`, world space: the environment map by default), what lies inside (`inside`: mist, bubbles, cracks), fine surface relief (`bump`) and an analytic `normal`; an `inner` box narrows the search for each exit. No transmission pass, and nothing depends on what the canvas shows behind the mesh — clear ice and glass over a transparent canvas on a dark page.
+- Example 07 sets a block of tinted glass beside the bottle; a browser check confirms the light is traced through it (its tint deepens what lies behind).
+
 ## 0.4.3 — 2026-10-10
 
 - **See-through glass** (`ThreeLayer` option and property `seeThroughGlass`): over a transparent canvas, transmissive materials show the page behind the canvas instead of three.js's half-transparent white fill, which turned clear glass and ice milky over a dark page. Example 07 checks the empty neck's alpha with and without it.
