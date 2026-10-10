@@ -39,7 +39,7 @@ Live showcase: **[Abali](https://veyra-studio.github.io/abali/)** — a Persian,
 | **Layout motion** | `flip` layout transitions (interruptible, enter fades), `stagger` patterns (center, edges, random, grids mirrored for RTL), inertia (`Decay`). |
 | **Marquee** | Endless bands that run in the reading direction, react to scroll velocity, idle offscreen and stay still under reduced motion. |
 | **Type** | Script-aware `splitText`: Arabic-script letters (Persian, Arabic, Urdu…) **keep their joined forms** when split, lam-alef stays whole, mixed-direction runs keep their order, screen readers get the text once. **Kashida** stretches Persian words on calligraphically ranked connections; `scrambleText` decodes with each script's own letters. |
-| **Procedural** | Seeded gradient noise (`noise2/3`, `fbm`) for organic motion; `@veyra/core/glsl` — hash, noise, SDF, OKLab color and math chunks for your shaders. **Terrain**: eroded and ridged noise height fields with baked sun shadows and ambient occlusion — DOM-free, worker-friendly. |
+| **Procedural** | Seeded gradient noise (`noise2/3`, `fbm`) for organic motion; `@veyra/core/glsl` — hash, noise, SDF, OKLab color and math chunks for your shaders, and noise read from a baked, tiling noise texture (`noiseTexture`) for full-screen surfaces. **Terrain**: eroded and ridged noise height fields with baked sun shadows and ambient occlusion — DOM-free, worker-friendly. |
 | **Image sequences** | Scroll-scrubbed frame sequences on a canvas, loaded coarse-to-fine so they respond before every frame has arrived; resolution follows the quality governor. |
 | **Quality** | Adaptive governor: detects refresh rate, measures real frame times, steps quality and pixel ratio down under load and back up with headroom. |
 | **Assets** | Weighted preloader for images, fonts, fetches and any promise; failures never block the experience. |
@@ -59,7 +59,7 @@ npm install @veyra/core@github:veyra-studio/veyra-core#release
 npm install three        # only for @veyra/core/three
 ```
 
-Pin a version with a tag: `github:veyra-studio/veyra-core#v0.3.0`.
+Pin a version with a tag: `github:veyra-studio/veyra-core#v0.4.0`.
 
 ## Develop
 

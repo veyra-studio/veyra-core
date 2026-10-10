@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-10-10
+
+Noise from a texture. Additive: 0.3 code keeps working.
+
+- **Noise textures** (`noiseTexture`, `tilingNoise` in `@veyra/core/three`): seamlessly tiling gradient noise stored with its analytic gradient, plus a second independent layer; half floats with a box-filtered mip chain.
+- **`glslNoiseTexture`** (`@veyra/core/glsl`): `tfbm` and `tfbmd` (value and gradient), 2D and triplanar, read fractal noise from that texture — one texture read per octave instead of dozens of hashes per pixel, filtered in the distance, with bumps that stay smooth up close.
+- Example 07's terrain reads its rock detail from a noise texture, with a browser check that the detail shows; the examples index check counts seven examples.
+
 ## 0.3.0 — 2026-10-10
 
 Product rendering, terrain and synthesized sound. Additive: 0.2 code keeps working.

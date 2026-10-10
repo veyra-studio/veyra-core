@@ -346,6 +346,38 @@ void main() {
 - `glslSdf` — `sdCircle`, `sdBox`, `sdRoundBox`, `sdSegment`, `sdRing`, `opUnion`, `opSubtract`, `opIntersect`, `opSmoothUnion`, `opSmoothSubtract`, `fillAA(d, aa)`.
 - `glslColor` — `srgbToLinear`, `linearToSrgb`, `linearToOklab`, `oklabToLinear`, `mixOklab`, `cosinePalette`.
 - `glslMath` — `remap`, `remapClamped`, `smootherstep`, `rotate2d`.
+- `glslNoiseTexture` — `tfbm` and `tfbmd`: fractal noise read from a noise texture (below).
+
+### Noise from a texture
+
+Per-pixel noise costs dozens of hashes per octave; on a full-screen surface (terrain, water, sky) that is the difference between 15 and 60 frames per second. Bake the noise into a texture once and read it instead:
+
+```ts
+import { noiseTexture } from '@veyra/core/three'
+import { glslNoiseTexture } from '@veyra/core/glsl'
+
+const noise = noiseTexture({ size: 256, cells: 8, seed: 1 })   // tiling noise + its gradient, half floats, mipmaps
+noise.anisotropy = renderer.capabilities.getMaxAnisotropy()      // crisp at grazing angles
+const material = new THREE.ShaderMaterial({
+  uniforms: { uNoise: { value: noise } },
+  fragmentShader: `
+  ${glslNoiseTexture}
+  uniform sampler2D uNoise;
+  void main() {
+    float rock = tfbm(uNoise, 8.0, vWorld * 0.02, normal, 4);    // triplanar: no streaks on steep faces
+    vec3 g = tfbmd(uNoise, 8.0, vWorld * 0.01, normal, 3).yzw;    // world-space gradient, for bump
+    vec3 n = normalize(normal - (g - normal * dot(g, normal)) * 0.6);
+    …
+  }`,
+})
+```
+
+- `tfbm(tex, cells, vec2 p, octaves)` reads like `fbm(p, octaves)`: `p` is in noise cells and `cells` is the texture's (`noise.userData.cells`). Each octave reads at twice the frequency, turned, so neither the octaves nor the tiles line up — one texture read per octave.
+- `tfbmd(tex, cells, vec2 p, octaves)` returns `vec3(value, d/dx, d/dy)`. The texture stores the noise's analytic gradient, so this costs no extra reads, and a bump from it stays smooth even where one texel covers several pixels (finite differences of filtered noise show the texel grid).
+- The `vec3 p, vec3 n` forms are triplanar — three projections blended by the surface normal — and `tfbmd` then returns `vec4(value, world-space gradient)`.
+- Channels: R noise in `[-1, 1]`, G and B its derivatives per tile, A a second independent noise.
+- Fragment shaders only (mip selection uses screen derivatives). Mipmaps filter distant detail instead of letting it shimmer; a little anisotropic filtering sharpens grazing views but each level costs reads.
+- `tilingNoise(options)` returns the same data as plain arrays, for canvases, workers and tests.
 
 ## Terrain
 
