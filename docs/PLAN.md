@@ -18,12 +18,12 @@ Master tracker for the three Veyra repositories. Keep it current: it is how work
 
 ## ⚠️ Owner actions required
 
-These need repository/organization admin rights, so they could not be done from a Claude Code session:
+These are the owner's call (repository settings, merging into `main`):
 
-1. **Give Claude write access** — the Claude GitHub App is not installed for the `veyra-studio` organization, so pushes were refused (HTTP 403). Install it at https://github.com/apps/claude/installations/select_target (or reconnect GitHub at https://claude.ai/connect-github). Until then, the session's commits exist only in its container (git bundles were provided as a fallback).
+1. ~~Give Claude write access~~ — done 2026-10-10: Claude GitHub App installed, branches pushed.
 2. **abali** → Settings → Pages → *Build and deployment* → Source: **GitHub Actions**.
-3. **veyra-studio.github.io** → Settings → Pages → Source: switch from "Deploy from a branch" to **GitHub Actions**.
-4. Merge each repository's `claude/happy-gates-7en1kj` branch into `main` (the deploy workflows run on `main`).
+3. **veyra-studio.github.io** → Settings → Pages → Source: switch from "Deploy from a branch" to **GitHub Actions**. Do this before merging; otherwise the push to `main` publishes the repository's raw files instead of the build.
+4. Merge each repository's `claude/happy-gates-7en1kj` branch into `main` (the deploy workflows run on `main`; a pull request runs the build as a check first).
 
 ## Status
 
@@ -52,3 +52,7 @@ These need repository/organization admin rights, so they could not be done from 
 - Built engine v0.1.0, Abali, studio site, workflows, docs.
 - Verification run: `npm run check` (core), `npm run build` + `npm run verify` (abali, studio). See each repo's README for commands.
 - Push blocked (GitHub App not installed for the org) — see owner actions.
+
+### 2026-10-10 — session 1 (continued)
+- Owner installed the Claude GitHub App; `claude/happy-gates-7en1kj` pushed to all three repositories.
+- No workflow has run on GitHub yet: they trigger on `main`, pull requests, or manual dispatch, and manual dispatch only works once the workflow file is on the default branch.
