@@ -1,6 +1,6 @@
 {
   "name": "@veyra/core",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Veyra — a creative web experience engine: frame loop, motion, scroll scenes, script-aware typography and adaptive rendering for ambitious websites.",
   "type": "module",
   "license": "MIT",
@@ -58,5 +58,5 @@
   "engines": {
     "node": ">=20.19"
   },
-  "gitHead": "64ab2f48b9ffe1d4bdfd91b4818182801e3ecf84"
+  "gitHead": "2102e9f0976325b2bc27959792096f2ca8417e09"
 }

@@ -244,4 +244,5 @@ export { ContactShadow } from './shadow.js';
 export { ReflectiveFloor } from './floor.js';
 export { heightfieldGeometry, meshGeometry } from './terrain.js';
 export { noiseTexture, tilingNoise } from './noise.js';
+export { refractiveSolid } from './solid.js';
 //# sourceMappingURL=index.js.map

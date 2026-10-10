@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-export const VERSION = '0.4.3';
+export const VERSION = '0.5.0';
 export * from './core/math.js';
 export * from './core/ease.js';
 export * from './core/signal.js';

@@ -133,4 +133,5 @@ export { ContactShadow, type ContactShadowOptions } from './shadow.js';
 export { ReflectiveFloor, type ReflectiveFloorOptions } from './floor.js';
 export { heightfieldGeometry, meshGeometry, type HeightfieldGeometryOptions } from './terrain.js';
 export { noiseTexture, tilingNoise, type TilingNoise, type TilingNoiseOptions } from './noise.js';
+export { refractiveSolid, type Solid, type SolidOptions } from './solid.js';
 //# sourceMappingURL=index.d.ts.map
