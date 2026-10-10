@@ -4,26 +4,26 @@ Master tracker for the three Veyra repositories. Keep it current: it is how work
 
 | Repository | Role | Deploys to |
 | --- | --- | --- |
-| [veyra-core](https://github.com/veyra-studio/veyra-core) | The engine (source of truth) | — (packed release, later npm) |
+| [veyra-core](https://github.com/veyra-studio/veyra-core) | The engine (source of truth) | `release` branch, built by CI (later npm) |
 | [abali](https://github.com/veyra-studio/abali) | First showcase: Persian RTL campaign concept for Doogh Abali | https://veyra-studio.github.io/abali/ |
 | [veyra-studio.github.io](https://github.com/veyra-studio/veyra-studio.github.io) | Bilingual (EN/FA) studio + engine website | https://veyra-studio.github.io/ |
 
 ## Key decisions (details in [architecture.md](architecture.md))
 
-- **Engine**: TypeScript, zero runtime deps, one frame loop, native-first smooth scroll, CSS-sticky pinning, owned motion layer (no GSAP — license), script-aware typography (Persian joining, bidi), adaptive quality, three.js as optional peer (`@veyra/core/three`).
-- **Integration**: projects vendor the unpacked release package in `vendor/veyra-core/` (`file:` dependency, `VENDORED.json` records version/checksum/commit). Live co-development via `VEYRA_CORE_SRC=../veyra-core`.
+- **Engine**: TypeScript, zero runtime deps, one frame loop, native-first smooth scroll, CSS-sticky pinning, owned motion layer (no GSAP — license), script-aware typography (Persian joining, bidi, kashida), adaptive quality, stage-dependent capabilities as plugins, three.js as optional peer (`@veyra/core/three`), shader chunks (`@veyra/core/glsl`).
+- **Integration** (ADR-010, owner decision 2026-10-10): projects depend on `github:veyra-studio/veyra-core#release`. CI publishes every green `main` build to `release` (packed package, no dev dependencies, history kept, `v<version>` tags). Projects install the newest release at build time, record it in `engine.json`, and rebuild on `repository_dispatch` (optional token) or an hourly check. Live co-development via `VEYRA_CORE_SRC=../veyra-core`.
 - **Abali**: Vite + TypeScript single page, three.js for the product, base path `/abali/` in every mode.
 - **Studio site**: Astro static site, English at `/`, Persian at `/fa/` (each written natively), cross-document View Transitions for the language switch.
 - **Deploy**: GitHub Actions → GitHub Pages (`upload-pages-artifact@v5` + `deploy-pages@v4`) in both site repos; PRs build as a check.
 
-## ⚠️ Owner actions required
+## ⚠️ Owner actions
 
-These are the owner's call (repository settings, merging into `main`):
+Done: GitHub access, Pages set to GitHub Actions in both site repositories, first merges (both sites deployed from `main` on 2026-10-10).
 
-1. ~~Give Claude write access~~ — done 2026-10-10: Claude GitHub App installed, branches pushed.
-2. **abali** → Settings → Pages → *Build and deployment* → Source: **GitHub Actions**.
-3. **veyra-studio.github.io** → Settings → Pages → Source: switch from "Deploy from a branch" to **GitHub Actions**. Do this before merging; otherwise the push to `main` publishes the repository's raw files instead of the build.
-4. ~~Merge each repository's `claude/happy-gates-7en1kj` branch into `main`~~ — done 2026-10-10 (PR #1 in each repository). The site deploys failed (see session log); merge the follow-up fix on the same branch name to redeploy.
+Open:
+
+1. **Merge order for engine 0.2**: merge the `veyra-core` pull request first. Its CI publishes the `release` branch; only then can the sites' switch to the GitHub dependency build (their lockfiles point at that branch).
+2. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 
 ## Status
 
@@ -38,12 +38,16 @@ These are the owner's call (repository settings, merging into `main`):
 - **Studio site**: bilingual design (EN/FA designed separately), woven "veil" hero, live engine demos (frame loop, spring, scroll progress, Persian splitting naive vs Veyra, adaptive quality), Abali case study, studio/engine/showcase relationship, principles, code sample, bilingual 404, language-switch view transitions, hreflang/OG/sitemap. Verification script.
 - Deploy workflows in both site repos.
 
-### Phase 3 — Next
-- **Ship**: owner actions above, then confirm both live URLs (never verified from the session: the sandbox cannot reach `*.github.io`).
+### Phase 3 — Engine 0.2 & GitHub distribution ✅ (in review)
+- **Engine 0.2**: horizontal sections (direction-aware, snapping, focus-safe), `draggable` (inertia, rubber band, snap, keyboard), `magnetic`, `tilt`, `cursor`, `marquee`, `flip`, `stagger`, `Decay`, `kashida`, `scrambleText`, noise, `@veyra/core/glsl`, `imageSequence`, `whenVisible`, `stage.media()`, `stage.onRefresh()`. 107 unit tests; `npm run verify:examples` drives six examples in headless Chromium (all checks pass). Additive — Abali builds and passes its full verification on 0.2 installed from git.
+- **Distribution**: `release` branch published by CI (`scripts/release-branch.mjs`, tested against a local bare repository: first publish, no-op re-run, version bump with history kept, install into Abali). Fixes the old follow-up: installs no longer pull the engine's test toolchain (Abali: 89 → 33 packages).
+- **Sites** (after the engine merge): switch both to `github:veyra-studio/veyra-core#release`, drop `vendor/`, deploy workflows refresh the engine, write `engine.json`, accept `repository_dispatch`, hourly check.
+
+### Phase 4 — Next
+- **Ship**: confirm both live URLs in a browser (the sandbox cannot reach `*.github.io`).
 - **Abali polish**: real-GPU performance pass (profiling on mid-range Android/iOS), optional audio sprite instead of synthesized pop, a short end-card share flow, Persian copy review by a native copywriter.
-- **Integration**: npm installs the devDependencies of a `file:`-linked package, so the sites also install the engine's test toolchain (vitest, jsdom, TypeScript 7). Harmless but wasteful: strip `devDependencies` from the packed `package.json`, or vendor the tarball itself.
-- **Engine**: direction-aware horizontal scroll section helper, `stage.media()` breakpoint signals, WebGPU path via `three/webgpu`, GLSL utility chunks (noise, SDFs), a scene timeline scrubber in the debug overlay, audio sprites, published npm package (claim `@veyra` scope).
-- **Studio site**: `/docs/` section generated from `veyra-core/docs`, more case studies as showcases ship.
+- **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
+- **Studio site**: showcase the 0.2 capabilities in the engine section, `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
 
 ## Session log
 
@@ -58,3 +62,9 @@ These are the owner's call (repository settings, merging into `main`):
 - Owner installed the Claude GitHub App; `claude/happy-gates-7en1kj` pushed to all three repositories.
 - No workflow has run on GitHub yet: they trigger on `main`, pull requests, or manual dispatch, and manual dispatch only works once the workflow file is on the default branch.
 - Owner merged PR #1 in each repository. Core CI passed (PR and `main`). Both site deploys failed in the build job: "Cannot find module '@veyra/core'". Cause: the sites' bare `dist/` ignore rule also matched `vendor/veyra-core/dist/`, so the engine's JS and type declarations were never committed (local builds used the files on disk). Fix: anchor the rule (`/dist/`), commit the vendored `dist/` (byte-identical to the release tarball), and `engine:update` now refuses to finish when a vendored file is ignored. Verified from fresh clones exactly as CI runs: `npm ci`, build, the workflow's guard steps, `npm run verify`.
+
+### 2026-10-10 — session 1, round 2 (owner request: "strengthen the engine; reference it from GitHub in the sites")
+- Owner merged PR #2 in all three repositories; both site deploys and core CI green.
+- Built engine 0.2 (see Phase 3). Real-browser checks caught five bugs the unit tests could not: overlapping scrambles captured scrambled text; keyboard stepping skipped a card from an off-grid position; magnetic measurements went stale after layout changes (→ `stage.onRefresh`); the horizontal plugin defaulted to the pin's first child instead of the track (→ widest child); FLIP read `transform-origin` percentages as pixels. All fixed with regression tests.
+- Replaced vendoring with the CI-published `release` branch (ADR-010 supersedes ADR-008); removed `scripts/engine-update.mjs`.
+
