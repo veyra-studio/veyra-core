@@ -457,6 +457,8 @@ stage.quality!.tier.subscribe((t) => (bloom.enabled = t === 'high'), { immediate
 
 The governor watches real frame times in windows of 30 frames: two slow windows step the level down, one far too slow window (under 60% of the target) steps it down at once — further the slower it is — and six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. The refresh rate is measured over the first second but never taken below `minRefreshRate` (60 Hz): a device that only manages 30 fps is struggling, not showing a 30 Hz screen.
 
+Tiers hold steady (`steadyTier`, default `true`): once sustained slow frames push the level into a lower tier, it doesn't climb back into the tier it left for the rest of the session — it still rises within its tier, and with it the pixel ratio — so what a page swaps by tier (materials, effects) swaps once instead of flickering back and forth. Stalls and the warm-up don't fence a tier off; `quality.set()` lifts the limit.
+
 The starting level (`initial: 'auto'`) comes from hardware hints: desktops start high (lower with four cores or few gigabytes of memory), phones and tablets (a coarse pointer) start in the middle and climb if they can. Tie expensive features to `tier` — and follow it at runtime, not only when building — so the low tier stays light.
 
 ## Sound

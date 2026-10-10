@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 — 2026-10-10
+
+- **Steady tiers** (`steadyTier`, default `true`): once sustained slow frames push the quality level into a lower tier, it no longer climbs back into the tier it left in the same session (it still rises within its tier, and the pixel ratio with it). A device near a boundary used to step down, recover, climb back and step down again, so whatever a page swaps by tier (Abali's bottle glass) flickered between versions. Stalls and the warm-up don't fence a tier off; `quality.set()` lifts the limit.
+
 ## 0.6.0 — 2026-10-10
 
 Lighter on weak devices. No API removed; the governor's and the scroll's defaults change.

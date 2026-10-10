@@ -90,6 +90,36 @@ describe('QualityGovernor', () => {
     expect(mild.level.value).toBeCloseTo(0.7)
   })
 
+  it('keeps the tier steady: once slow frames lower it, the tier left stays out of reach', () => {
+    const q = new QualityGovernor({ initial: 0.8, window: 10 })
+    for (let i = 0; i < 60; i++) q.sample(1 / 60)
+    for (let i = 0; i < 10; i++) q.sample(1 / 25)
+    expect(q.tier.value).toBe('medium')
+    const dropped = q.level.value
+    // Plenty of headroom afterwards: it climbs within medium, never back to high.
+    for (let i = 0; i < 3000; i++) q.sample(1 / 120)
+    expect(q.level.value).toBeGreaterThan(dropped)
+    expect(q.tier.value).toBe('medium')
+    // An explicit setting may still raise it.
+    q.set(0.9)
+    expect(q.tier.value).toBe('high')
+    // Without steadyTier it climbs back.
+    const free = new QualityGovernor({ initial: 0.8, window: 10, steadyTier: false })
+    for (let i = 0; i < 60; i++) free.sample(1 / 60)
+    for (let i = 0; i < 10; i++) free.sample(1 / 25)
+    for (let i = 0; i < 3000; i++) free.sample(1 / 120)
+    expect(free.tier.value).toBe('high')
+  })
+
+  it("doesn't fence a tier over stalls: frames over 250 ms may be a one-off", () => {
+    const q = new QualityGovernor({ initial: 0.8, window: 10 })
+    for (let i = 0; i < 60; i++) q.sample(1 / 60)
+    for (let i = 0; i < 3; i++) q.sample(0.4)
+    expect(q.tier.value).toBe('low')
+    for (let i = 0; i < 6000; i++) q.sample(1 / 120)
+    expect(q.tier.value).toBe('high')
+  })
+
   it('starts phones and tablets in the middle', () => {
     const matchMedia = window.matchMedia
     const nav = navigator as Navigator & { deviceMemory?: number }
