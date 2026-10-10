@@ -19,8 +19,8 @@ Projects install the engine from the `release` branch, which CI publishes from e
 
 ## Layout
 
-- `src/core` math, ease, signal, ticker, noise (no DOM) · `src/motion` timeline/spring/decay/values/style/stagger/flip · `src/env` viewport/pointer/visibility · `src/scroll` controller + horizontal sections · `src/layout` rect cache · `src/scene` · `src/text` joining types, splitText, kashida, scramble · `src/interaction` drag/magnetic/tilt/cursor · `src/effects` marquee · `src/media` image sequences · `src/assets` · `src/quality` · `src/sound` · `src/debug` · `src/stage.ts` composition root · `src/three` (`@veyra/core/three`) · `src/glsl` (`@veyra/core/glsl`).
-- `examples/` six live examples; `test/` unit tests; `scripts/verify-examples.mjs` browser checks; `docs/` guide, architecture (ADRs), integration, plan.
+- `src/core` math, ease, signal, ticker, noise, terrain (no DOM) · `src/motion` timeline/spring/decay/values/style/stagger/flip · `src/env` viewport/pointer/visibility · `src/scroll` controller + horizontal sections · `src/layout` rect cache · `src/scene` · `src/text` joining types, splitText, kashida, scramble · `src/interaction` drag/magnetic/tilt/cursor · `src/effects` marquee · `src/media` image sequences · `src/assets` · `src/quality` · `src/sound` · `src/debug` · `src/stage.ts` composition root · `src/three` (`@veyra/core/three`: layer, profile, studio, condensation, floor, shadow, terrain) · `src/glsl` (`@veyra/core/glsl`).
+- `examples/` seven live examples; `test/` unit tests; `scripts/verify-examples.mjs` browser checks; `docs/` guide, architecture (ADRs), integration, plan.
 
 ## Conventions
 
@@ -36,4 +36,6 @@ Projects install the engine from the `release` branch, which CI publishes from e
 
 ## Verifying in a browser
 
-Chromium is preinstalled for Playwright (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`, Playwright 1.56). Run `npm run examples` and screenshot pages with a small Playwright script; launch with `--use-angle=swiftshader` for WebGL in headless mode.
+Playwright 1.56 drives Chromium (in the cloud sandbox it is preinstalled at `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`; elsewhere run `npx playwright install chromium`). Run `npm run examples` and screenshot pages with a small Playwright script; launch with `--use-angle=swiftshader` for WebGL in headless mode (portable, what the checks use), or `--use-angle=metal` on a Mac to render on the GPU.
+
+WebGL checks: unit tests can't render, so prove rendering features with pixel probes in an example (render, then `gl.readPixels` in the same task) and assert them in `scripts/verify-examples.mjs` — that is how the contact shadow's culling bug was caught.

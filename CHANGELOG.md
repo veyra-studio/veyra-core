@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — 2026-10-10
+
+Product rendering, terrain and synthesized sound. Additive: 0.2 code keeps working.
+
+- **Turned shapes** (`Profile`, `@veyra/core/three`): smooth measured silhouettes with sharp corners, sample radius and slope, offset with miter joins, clip to closed solids, measure volume, build lathe geometry, and build label bands whose artwork keeps its proportions on cones (`band()`, `halfWidthAt`).
+- **Studio light** (`studioEnvironment`, `studioLights`): softbox, strip and reflector setups baked into a PMREM environment — presets `product` and `soft`.
+- **Condensation** (`condensationMaps`, `condensationField`): droplets, mist and run tracks as tileable normal and roughness maps.
+- **Glossy floors** (`ReflectiveFloor`): mirrored-camera reflections that fade and blur with the reflected object's height (from depth), layer filtering, oblique clipping.
+- **Contact shadows** (`ContactShadow`): depth from below, blurred, with `resize()`.
+- **Terrain** (`heightfield`, `erodedNoise`, `ridgedNoise`, `valueNoiseD`, `bakeSunlight`, `bakeOcclusion`, `heightfieldMesh`; `heightfieldGeometry` and `meshGeometry` in three): eroded mountains, baked sun shadows and ambient occlusion, worker-friendly mesh arrays, uneven grid layouts.
+- **Sound one-shots** (`SoundBus.tone`, `SoundBus.burst`): synthesized tones and filtered noise bursts for clicks, hisses and pings; silent no-ops while sound is off.
+- Example 07 *Product & terrain*, with browser checks for the floor reflection, the contact shadow and the terrain bake.
+
 ## 0.2.0 — 2026-10-10
 
 Interaction, layout motion, Persian typography and procedural tools. Additive: 0.1 code keeps working.
