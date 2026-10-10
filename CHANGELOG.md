@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 — 2026-10-10
+
+- **Fix — adaptive quality on very slow devices**: the governor ignored every frame longer than 250 ms as a stall, so a device that could only manage a few frames per second (a software renderer, a far too heavy scene) never had its quality lowered. An isolated long frame is still ignored; three in a row now drop the level to its minimum at once (it climbs back as usual when frames speed up).
+
 ## 0.4.0 — 2026-10-10
 
 Noise from a texture. Additive: 0.3 code keeps working.

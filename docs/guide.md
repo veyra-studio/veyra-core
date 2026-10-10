@@ -453,6 +453,8 @@ stage.quality!.dpr     // recommended pixel ratio
 stage.quality!.tier.subscribe((t) => (bloom.enabled = t === 'high'), { immediate: true })
 ```
 
+The governor watches real frame times in windows of frames: two slow windows step the level down, six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. Tie expensive shader variants to `tier` so the low tier stays light.
+
 ## Sound
 
 ```ts

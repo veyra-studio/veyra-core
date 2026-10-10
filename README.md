@@ -59,7 +59,7 @@ npm install @veyra/core@github:veyra-studio/veyra-core#release
 npm install three        # only for @veyra/core/three
 ```
 
-Pin a version with a tag: `github:veyra-studio/veyra-core#v0.4.0`.
+Pin a version with a tag: `github:veyra-studio/veyra-core#v0.4.1`.
 
 ## Develop
 
