@@ -226,3 +226,79 @@ mat2 rotate2d(float a) {
 }
 #endif
 `
+
+/**
+ * Fractal noise read from a `noiseTexture()` (`@veyra/core/three`) instead of
+ * computed per pixel: one texture read per octave in place of dozens of
+ * hashes, filtered by mipmaps in the distance. The texture holds the noise's
+ * analytic gradient, so `tfbmd` needs no extra reads and its bump stays
+ * smooth up close. Fragment shaders only (mip selection uses screen
+ * derivatives). `p` is in noise cells, as for `fbm`; `cells` is the
+ * texture's cells per side (`texture.userData.cells`).
+ *
+ * - `tfbm(tex, cells, vec2 p, octaves)` — about `[-1, 1]`.
+ * - `tfbmd(tex, cells, vec2 p, octaves)` — `vec3(value, d/dx, d/dy)`, for bump mapping.
+ * - `tfbm(tex, cells, vec3 p, vec3 n, octaves)` and `tfbmd(…)` → `vec4(value, gradient)` —
+ *   triplanar, for world-space surfaces: no stretching on steep faces (`n` is the surface normal).
+ */
+export const glslNoiseTexture = /* glsl */ `
+#ifndef VEYRA_NOISE_TEXTURE
+#define VEYRA_NOISE_TEXTURE
+// Each octave reads at twice the frequency, turned by about 37 degrees and
+// shifted, so neither the octaves nor the tiles line up.
+const mat2 VEYRA_TURN = mat2(0.8, 0.6, -0.6, 0.8);
+const vec2 VEYRA_SHIFT = vec2(0.137, 0.291);
+float tfbm(sampler2D tex, float cells, vec2 p, int octaves) {
+  vec2 q = p / cells;
+  vec2 dx = dFdx(q), dy = dFdy(q);
+  float sum = 0.0, amp = 0.5, norm = 0.0;
+  for (int i = 0; i < 8; i++) {
+    if (i >= octaves) break;
+    sum += amp * textureGrad(tex, q, dx, dy).r;
+    norm += amp;
+    q = VEYRA_TURN * q * 2.0 + VEYRA_SHIFT;
+    dx = VEYRA_TURN * dx * 2.0;
+    dy = VEYRA_TURN * dy * 2.0;
+    amp *= 0.5;
+  }
+  return sum / max(norm, 1e-6);
+}
+vec3 tfbmd(sampler2D tex, float cells, vec2 p, int octaves) {
+  vec2 q = p / cells;
+  vec2 dx = dFdx(q), dy = dFdy(q);
+  // q = m p: gradients read per tile map back to p through m's transpose.
+  mat2 m = mat2(1.0 / cells);
+  float sum = 0.0, amp = 0.5, norm = 0.0;
+  vec2 grad = vec2(0.0);
+  for (int i = 0; i < 8; i++) {
+    if (i >= octaves) break;
+    vec3 s = textureGrad(tex, q, dx, dy).rgb;
+    sum += amp * s.x;
+    grad += amp * (transpose(m) * s.yz);
+    norm += amp;
+    q = VEYRA_TURN * q * 2.0 + VEYRA_SHIFT;
+    dx = VEYRA_TURN * dx * 2.0;
+    dy = VEYRA_TURN * dy * 2.0;
+    m = VEYRA_TURN * m * 2.0;
+    amp *= 0.5;
+  }
+  return vec3(sum, grad) / max(norm, 1e-6);
+}
+vec3 veyraTriplanar(vec3 n) {
+  vec3 w = n * n;
+  w *= w;
+  return w / (w.x + w.y + w.z);
+}
+float tfbm(sampler2D tex, float cells, vec3 p, vec3 n, int octaves) {
+  vec3 w = veyraTriplanar(n);
+  return w.x * tfbm(tex, cells, p.zy, octaves) + w.y * tfbm(tex, cells, p.xz, octaves) + w.z * tfbm(tex, cells, p.xy, octaves);
+}
+vec4 tfbmd(sampler2D tex, float cells, vec3 p, vec3 n, int octaves) {
+  vec3 w = veyraTriplanar(n);
+  vec3 a = tfbmd(tex, cells, p.zy, octaves);
+  vec3 b = tfbmd(tex, cells, p.xz, octaves);
+  vec3 c = tfbmd(tex, cells, p.xy, octaves);
+  return w.x * vec4(a.x, 0.0, a.z, a.y) + w.y * vec4(b.x, b.y, 0.0, b.z) + w.z * vec4(c.x, c.y, c.z, 0.0);
+}
+#endif
+`
