@@ -18,11 +18,11 @@ Master tracker for the three Veyra repositories. Keep it current: it is how work
 
 ## ⚠️ Owner actions
 
-Done: GitHub access, Pages set to GitHub Actions in both site repositories, first merges (both sites deployed from `main` on 2026-10-10).
+Done: GitHub access, Pages set to GitHub Actions in both site repositories, first merges (both sites deployed from `main` on 2026-10-10), engine 0.2 merged and released, both sites switched to the `release` branch and deployed.
 
 Open:
 
-1. **Merge order for engine 0.2**: merge the `veyra-core` pull request first. Its CI publishes the `release` branch; only then can the sites' switch to the GitHub dependency build (their lockfiles point at that branch).
+1. **Studio 0.2 showcase**: review and merge `claude/happy-gates-7en1kj` in `veyra-studio.github.io` (the "New in 0.2" row) once its pull request is open and green.
 2. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 
 ## Status
@@ -38,16 +38,16 @@ Open:
 - **Studio site**: bilingual design (EN/FA designed separately), woven "veil" hero, live engine demos (frame loop, spring, scroll progress, Persian splitting naive vs Veyra, adaptive quality), Abali case study, studio/engine/showcase relationship, principles, code sample, bilingual 404, language-switch view transitions, hreflang/OG/sitemap. Verification script.
 - Deploy workflows in both site repos.
 
-### Phase 3 — Engine 0.2 & GitHub distribution ✅ (in review)
+### Phase 3 — Engine 0.2 & GitHub distribution ✅
 - **Engine 0.2**: horizontal sections (direction-aware, snapping, focus-safe), `draggable` (inertia, rubber band, snap, keyboard), `magnetic`, `tilt`, `cursor`, `marquee`, `flip`, `stagger`, `Decay`, `kashida`, `scrambleText`, noise, `@veyra/core/glsl`, `imageSequence`, `whenVisible`, `stage.media()`, `stage.onRefresh()`. 107 unit tests; `npm run verify:examples` drives six examples in headless Chromium (all checks pass). Additive — Abali builds and passes its full verification on 0.2 installed from git.
 - **Distribution**: `release` branch published by CI (`scripts/release-branch.mjs`, tested against a local bare repository: first publish, no-op re-run, version bump with history kept, install into Abali). Fixes the old follow-up: installs no longer pull the engine's test toolchain (Abali: 89 → 33 packages).
-- **Sites** (after the engine merge): switch both to `github:veyra-studio/veyra-core#release`, drop `vendor/`, deploy workflows refresh the engine, write `engine.json`, accept `repository_dispatch`, hourly check.
+- **Sites**: both depend on `github:veyra-studio/veyra-core#release` (lockfiles pin the 0.2.0 release commit), `vendor/` is gone, and the deploy workflows install the newest release, write `engine.json`, accept `repository_dispatch` and check hourly. Deployed from `main` on 2026-10-10.
 
 ### Phase 4 — Next
 - **Ship**: confirm both live URLs in a browser (the sandbox cannot reach `*.github.io`).
 - **Abali polish**: real-GPU performance pass (profiling on mid-range Android/iOS), optional audio sprite instead of synthesized pop, a short end-card share flow, Persian copy review by a native copywriter.
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
-- **Studio site**: showcase the 0.2 capabilities in the engine section, `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
+- **Studio site**: the 0.2 showcase is built (in review, see the session log); next, `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
 
 ## Session log
 
@@ -68,3 +68,7 @@ Open:
 - Built engine 0.2 (see Phase 3). Real-browser checks caught five bugs the unit tests could not: overlapping scrambles captured scrambled text; keyboard stepping skipped a card from an off-grid position; magnetic measurements went stale after layout changes (→ `stage.onRefresh`); the horizontal plugin defaulted to the pin's first child instead of the track (→ widest child); FLIP read `transform-origin` percentages as pixels. All fixed with regression tests.
 - Replaced vendoring with the CI-published `release` branch (ADR-010 supersedes ADR-008); removed `scripts/engine-update.mjs`.
 
+### 2026-10-10 — session 1, round 3 (owner requests: open the pull requests; add the new demos to the studio site)
+- Engine PR #3 merged; CI published `release` (`e3ba55c`, tag `v0.2.0`, built from `8461252`). Both sites moved to the `release` branch and deployed green from `main`. One detour: the sites' work-in-progress pull requests (#3) were merged while their checks were red (lockfiles out of step with `package.json`), so the next deploys failed until follow-up pull requests (#4) restored the lockfiles.
+- Studio site, "New in 0.2" / «تازه‌های نسخهٔ ۰٫۲»: a `horizontal()` row of seven panels between Engine and Work (leftward in English, rightward in Persian), each a live demo — `kashida`, `draggable`, `flip` + `stagger`, `magnetic` + `tilt`, `scrambleText`, and a WebGL2 shader built from `@veyra/core/glsl` — followed by a `marquee` band. `npm run verify` drives every demo in both languages on desktop and mobile, plus reduced motion (68 checks, all passing).
+- Browser review caught three layout bugs: Chrome computes `text-align: match-parent` as `start`, so alignment is now set per language; a promoted FLIP tile placed late in the order squashed into an implicit grid row (it now gets an explicit 2×2 area, and the check asserts square tiles); the code sample overflowed its block at 1440 px.
