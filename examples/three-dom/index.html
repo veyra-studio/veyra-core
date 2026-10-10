@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>three.js + DOM — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>03 · three.js + DOM</span></header>
+    <main>
+      <section class="hero">
+        <h1 id="headline">Layout is the scene graph.</h1>
+        <p>The headline is real HTML, mirrored into WebGL with its own line breaks. The planes below are positioned by CSS
+          grid. Scroll velocity bends them.</p>
+      </section>
+      <section class="grid">
+        <figure class="tile" data-hue="0.02"><figcaption>Scroll</figcaption></figure>
+        <figure class="tile" data-hue="0.58"><figcaption>Scenes</figcaption></figure>
+        <figure class="tile" data-hue="0.12"><figcaption>Springs</figcaption></figure>
+        <figure class="tile" data-hue="0.75"><figcaption>Quality</figcaption></figure>
+      </section>
+      <section class="knot-wrap"><div class="knot-anchor" id="knot"></div><p>An object anchored to an empty DOM box, turned by scene progress.</p></section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+main section { padding-inline: clamp(1rem, 4vw, 3rem); }
+.hero { min-height: 90vh; display: flex; flex-direction: column; justify-content: center; }
+.hero h1 { font-size: clamp(3rem, 10vw, 9rem); line-height: 0.92; letter-spacing: -0.045em; margin: 0.5rem 0 1.5rem; max-width: 10ch; }
+.lede { max-width: 38ch; font-size: 1.15rem; color: #3c3a36; }
+code { font-family: ui-monospace, monospace; font-size: 0.9em; background: #0000000d; padding: 0.1em 0.35em; border-radius: 4px; }
+
+.pin { height: 400vh; padding: 0 !important; }
+.pin-inner { position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; padding: 2rem clamp(1rem, 4vw, 3rem); }
+.pin-meta { display: flex; justify-content: space-between; align-items: end; }
+.counter { font: 600 clamp(3rem, 8vw, 6rem)/1 system-ui; letter-spacing: -0.04em; margin: 0; font-variant-numeric: tabular-nums; }
+.counter small { font-size: 0.4em; color: var(--muted); }
+.track { display: flex; gap: 2vw; align-items: center; will-change: transform; }
+.card { flex: 0 0 min(70vw, 26rem); aspect-ratio: 4 / 5; background: var(--ink); color: var(--paper); border-radius: 4px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; }
+.card:nth-child(2n) { background: var(--signal); color: var(--ink); }
+.card span { font-family: ui-monospace, monospace; }
+.card h2 { font-size: clamp(2rem, 4vw, 3.25rem); margin: auto 0 0.5rem; letter-spacing: -0.03em; }
+.card p { margin: 0; opacity: 0.8; }
+.bar { height: 2px; background: #0000001f; }
+.bar-fill { height: 100%; background: var(--ink); transform-origin: left; transform: scaleX(var(--progress, 0)); }
+
+.scrub { height: 250vh; padding: 0 !important; }
+.scrub-inner { position: sticky; top: 0; height: 100vh; display: grid; place-items: center; overflow: hidden; }
+.shape { position: absolute; width: 22vmin; height: 22vmin; background: var(--ink); }
+.shape.b { border-radius: 50%; background: var(--signal); }
+.shape.c { width: 0; height: 0; background: none; border-left: 13vmin solid transparent; border-right: 13vmin solid transparent; border-bottom: 22vmin solid #2b5dd6; }
+.scrub-copy { position: relative; font-size: clamp(1.5rem, 4vw, 3rem); letter-spacing: -0.03em; font-weight: 600; mix-blend-mode: difference; color: #fff; }
+
+.css-only { min-height: 120vh; display: flex; flex-direction: column; justify-content: center; }
+.css-only .big {
+  font-size: clamp(2rem, 9vw, 8rem); font-weight: 700; letter-spacing: -0.04em; margin: 0;
+  opacity: calc(0.15 + var(--progress, 0) * 0.85);
+  transform: translateX(calc((1 - var(--progress, 0)) * -12vw)) skewX(calc((1 - var(--progress, 0)) * -12deg));
+}
+.outro { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; gap: 1rem; font-size: 1.25rem; }
+@media (prefers-reduced-motion: reduce) {
+  .css-only .big { transform: none; }
+}
