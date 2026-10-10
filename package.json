@@ -1,0 +1,62 @@
+{
+  "name": "@veyra/core",
+  "version": "0.2.0",
+  "description": "Veyra — a creative web experience engine: frame loop, motion, scroll scenes, script-aware typography and adaptive rendering for ambitious websites.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Veyra Studio",
+  "homepage": "https://veyra-studio.github.io/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/veyra-studio/veyra-core.git"
+  },
+  "keywords": [
+    "creative-coding",
+    "animation",
+    "scroll",
+    "webgl",
+    "three",
+    "rtl",
+    "persian",
+    "motion"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "css",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./three": {
+      "types": "./dist/three/index.d.ts",
+      "import": "./dist/three/index.js"
+    },
+    "./glsl": {
+      "types": "./dist/glsl/index.d.ts",
+      "import": "./dist/glsl/index.js"
+    },
+    "./css": "./css/veyra.css",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "gitHead": "8461252112d48456b66111a04d8229b8f23df26b"
+}
