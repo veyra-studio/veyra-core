@@ -16,6 +16,7 @@ veyra-core  main ──CI: typecheck · tests · build · examples──▶  rel
 
 - **Only green builds ship.** CI writes the `release` branch after every check on `main` passed. It contains exactly what `npm publish` would upload, with `devDependencies` and `scripts` removed: installing from GitHub needs no build step and pulls no test toolchain.
 - **History is kept.** Each publish is a new commit on `release`, so a commit pinned in a project's lockfile stays installable. A version's first build is also tagged `v<version>`.
+- **Only package changes publish.** CI writes a commit only when the packed package differs from the current `release`. A merge that touches only docs, tests or CI leaves `release` alone, so the projects don't rebuild for it; the package's `gitHead` names the source commit it was built from.
 - **Projects follow automatically.** Every project build installs the newest `release` commit and records what it deployed in `engine.json`. Projects rebuild when the engine changes: immediately through a `repository_dispatch` (when the engine repository holds `SITES_DISPATCH_TOKEN`), otherwise through an hourly check that compares `release` with the deployed `engine.json`.
 - **Failure is safe.** If a new engine breaks a project build, that deploy fails and the previous site stays live.
 
