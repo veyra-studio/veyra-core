@@ -56,6 +56,7 @@ export class QualityGovernor {
   private badWindows = 0
   private goodWindows = 0
   private cooldown = 0
+  private stalls = 0
 
   constructor(options: QualityOptions = {}) {
     this.opts = {
@@ -88,8 +89,22 @@ export class QualityGovernor {
 
   /** Feeds one frame's real duration in seconds. Called by the stage every frame. */
   sample(rawDelta: number): void {
-    // Ignore stalls (tab switches, GC pauses, first frame).
-    if (rawDelta <= 0 || rawDelta > 0.25) return
+    if (rawDelta <= 0) return
+    // A single long frame is a stall (tab switch, GC pause, first frame) and
+    // says nothing about load. Several in a row mean the device can't keep up
+    // at all (a software renderer, a far too heavy scene): drop to the lowest
+    // level at once instead of waiting for windows of frames that never come.
+    if (rawDelta > 0.25) {
+      if (++this.stalls >= 3) {
+        this.stalls = 0
+        this.samples = []
+        this.badWindows = 0
+        this.goodWindows = 0
+        this.step(this.opts.min - this.level.value)
+      }
+      return
+    }
+    this.stalls = 0
     if (this.warmup.length < 60) {
       this.warmup.push(rawDelta)
       if (this.warmup.length === 60) {

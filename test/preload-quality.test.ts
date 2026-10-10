@@ -43,6 +43,27 @@ describe('QualityGovernor', () => {
     expect(q.level.value).toBeGreaterThan(0.4)
   })
 
+  it('ignores an isolated stall but drops to the lowest level when frames stay far too slow', () => {
+    const q = new QualityGovernor({ initial: 1, window: 10, min: 0.1 })
+    for (let i = 0; i < 60; i++) q.sample(1 / 60)
+    // A tab switch: one long frame, then normal frames again.
+    q.sample(2)
+    q.sample(1 / 60)
+    q.sample(3)
+    q.sample(1 / 60)
+    expect(q.level.value).toBe(1)
+    // A device rendering at a few frames per second (each frame > 250 ms).
+    q.sample(0.6)
+    q.sample(0.7)
+    expect(q.level.value).toBe(1)
+    q.sample(0.6)
+    expect(q.level.value).toBe(0.1)
+    expect(q.tier.value).toBe('low')
+    // It can still climb back once frames are fast again.
+    for (let i = 0; i < 2000; i++) q.sample(1 / 120)
+    expect(q.level.value).toBeGreaterThan(0.1)
+  })
+
   it('maps level to a capped pixel ratio', () => {
     const q = new QualityGovernor({ initial: 0, dprRange: [1, 2] })
     expect(q.dpr.value).toBe(1)
