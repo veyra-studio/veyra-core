@@ -33,6 +33,7 @@ export declare class QualityGovernor {
     private badWindows;
     private goodWindows;
     private cooldown;
+    private stalls;
     constructor(options?: QualityOptions);
     /** Target frames per second given the refresh rate. */
     get target(): number;
