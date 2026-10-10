@@ -24,6 +24,20 @@ describe('createStage', () => {
     el.remove()
   })
 
+  it('hands the wheel back to the browser while quality is at its lowest tier', () => {
+    const ticker = manualTicker()
+    const stage = createStage({ ticker, quality: { initial: 0.8, adaptive: false }, autoStart: false })
+    expect(stage.scroll!.smooth).toBe(true)
+    stage.quality!.set(0.1)
+    expect(stage.scroll!.smooth).toBe(false)
+    stage.quality!.set(0.5)
+    expect(stage.scroll!.smooth).toBe(true)
+    stage.destroy()
+    const keep = createStage({ ticker, scroll: { nativeWhenSlow: false }, quality: { initial: 0.1, adaptive: false }, autoStart: false })
+    expect(keep.scroll!.smooth).toBe(true)
+    keep.destroy()
+  })
+
   it('honours reduced motion in animate()', () => {
     const ticker = manualTicker()
     const stage = createStage({ ticker, scroll: false, quality: false, reducedMotion: true, autoStart: false })

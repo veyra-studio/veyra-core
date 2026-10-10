@@ -21,6 +21,12 @@ export interface ScrollOptions {
   nativeSelector?: string
   /** Intercept same-page anchor links to scroll smoothly and move focus. Default `true`. */
   anchors?: boolean
+  /**
+   * Leave the wheel to the browser while the device is struggling (the
+   * stage's quality at its lowest tier): smoothing can't look smooth at a
+   * low frame rate, and native scrolling stays responsive. Default `true`.
+   */
+  nativeWhenSlow?: boolean
 }
 
 export interface ScrollToOptions {
@@ -36,6 +42,8 @@ export interface ScrollToOptions {
 export interface ScrollDeps {
   reducedMotion?: ReadonlySignal<boolean>
   touch?: ReadonlySignal<boolean>
+  /** True while the device can't keep up (see `nativeWhenSlow`). */
+  slow?: ReadonlySignal<boolean>
 }
 
 interface ScrollAnimation {
@@ -64,6 +72,7 @@ export class ScrollController {
   wheelMultiplier: number
 
   private readonly wantSmooth: boolean
+  private readonly nativeWhenSlow: boolean
   private readonly nativeSelector: string
   private smoothing = false
   private animation: ScrollAnimation | null = null
@@ -77,6 +86,7 @@ export class ScrollController {
 
   constructor(options: ScrollOptions = {}, deps: ScrollDeps = {}) {
     this.wantSmooth = options.smooth ?? true
+    this.nativeWhenSlow = options.nativeWhenSlow ?? true
     this.lambda = options.lambda ?? lerpToLambda(0.1)
     this.wheelMultiplier = options.wheelMultiplier ?? 1
     this.nativeSelector = options.nativeSelector ?? '[data-veyra-native-scroll]'
@@ -109,7 +119,7 @@ export class ScrollController {
 
   /** Whether wheel smoothing is currently active. */
   get smooth(): boolean {
-    return this.wantSmooth && !this.deps.reducedMotion?.value && !this.deps.touch?.value
+    return this.wantSmooth && !this.deps.reducedMotion?.value && !this.deps.touch?.value && !(this.nativeWhenSlow && this.deps.slow?.value)
   }
 
   /** Scroll progress through the whole document, `0…1`. */
