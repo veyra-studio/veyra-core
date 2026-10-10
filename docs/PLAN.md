@@ -50,8 +50,13 @@ Open:
 - **Studio site**: the Abali case follows the new headline (tagline, bodies, hero image), engine 0.4.2.
 - **Repositories**: descriptions, homepages and topics set on all three.
 
+### Phase 4b — Engine 0.5–0.6: clear solids, weak devices ✅
+- **Engine 0.5**: `refractiveSolid` — clear solids (ice, glass blocks) ray-traced through an SDF in the fragment shader: refraction in and out, internal reflection past the critical angle, Beer–Lambert tint, hooks for what rays see outside, inside, relief and normals (ADR-012).
+- **Engine 0.6**: the quality governor never takes the refresh rate below 60 Hz (a device at 30 fps used to pass for a 30 Hz screen), steps down after one far-too-slow window, and starts phones in the middle; wheel scrolling goes native at the lowest tier; `warmUp` compiles and draws a scene into one pixel before it shows; the solid's program key is a hash. 146 unit tests.
+- **Abali**: ray-traced ice in the studio and in the glass; every world follows the quality tier as it changes; the low tier drops the floor reflection, the bottle's transmission, the grain and the blurs; the sofreh's glass lost its transmission pass; responsive layouts for phones on their side and very wide screens.
+
 ### Phase 5 — Next
-- **Abali**: profile on real mid-range Android/iOS phones; a native copywriter's review; perhaps recorded sounds as an audio sprite beside the synthesized ones; a short share card at the end.
+- **Abali**: profile on real mid-range Android/iOS phones (the emulated weak-phone profile is in `lab/weak.mjs`, not a substitute); a native copywriter's review; perhaps recorded sounds as an audio sprite beside the synthesized ones; a short share card at the end.
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
 - **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
 
@@ -102,3 +107,13 @@ Open:
 - Section 3 (#10): low morning sun (alpenglow, blue shadows, glinting snow), a deeper sky; «آخیش!» in white; a frosted card with «آبعلی» in Nastaliq, the two factual lines and the coordinates (fa/en Wikipedia); the camera looks around with the pointer and the hand blows the snow aside; a breath out after the gulps.
 - Debugging note: an engine-source alias build pulled a second copy of three.js and broke `instanceof` checks (the doogh's profile collapsed in that build only). Abali's Vite config dedupes three; `Profile` no longer relies on `instanceof`.
 - Studio site: Abali hero image recaptured; engine 0.4.3 (#7, #8). All checks pass (engine, both sites, CPU and GPU); live sites checked.
+
+### 2026-10-10 — session 2, round 4 (owner: the ice still isn't pretty; then: lag on weaker devices, responsive review)
+- Ice, rethought: a translucent shell with a sprite inside read as grey plastic. Now each cube is ray-traced (engine 0.5, `refractiveSolid`, #13): what the rays see is modelled — the bottle (a cylinder), the black floor (Fresnel-bright toward the horizon), the studio's strips and a backlight hidden behind the set, as drinks photographers light ice — with a cloudy heart and tiny bubbles. The glass on the sofreh shows its doogh through the same ice (abali #11).
+- Weak devices (owner: Abali and the engine lag on them). Profiled with CPU throttling and per-render GPU timings per tier:
+  - Engine 0.6 (#14): the governor's 30 Hz blind spot and slow reaction (above); phones start in the middle; native wheel at the lowest tier; `warmUp`.
+  - Abali (#12): the studio and table were built at the first tier and kept it — now every world follows the tier as it changes; the sofreh's glass transmission (60% of that world) and the floor's mirrored transmission are gone; the ice's dense mesh ran its trace several times per pixel (2×2 shading blocks) — large flat faces fixed it; compile stalls when scrolling into later worlds (`warmUp`); a computed-style read for every letter of «پیسسس» every frame; per-frame CSS writes; a fixed background repainted on scroll; a 2×-viewport grain layer.
+  - Results (headless Metal, phone viewport): studio 11.7 → 6.7 ms at high, 0.5 ms at low; sofreh 11.9 → 4.1 ms at high, 1.2 ms at low; on the throttled profile the hero's p90 frame 33 → 17 ms.
+- Responsive sweep at 11 sizes (320×568 to 3440×1440, automatic overflow and clipped-text checks, screenshots reviewed): a phone on its side had overlapping lines in «پیس» and the place card running off screen in «آخیش»; the footer slid under the HUD; on a 320 px phone the finale's button sat on the ice; on very wide screens the bottle and the copy drifted apart. All fixed (abali #12).
+- The user merged abali #12 after its checks passed. Studio site: engine 0.6.0 and the Abali image recaptured (#9); Abali's share image recaptured (#13). The studio site itself was already light on the weak profile (60 fps, ≤ 2 ms JS per frame).
+
