@@ -23,7 +23,7 @@ These are the owner's call (repository settings, merging into `main`):
 1. ~~Give Claude write access~~ — done 2026-10-10: Claude GitHub App installed, branches pushed.
 2. **abali** → Settings → Pages → *Build and deployment* → Source: **GitHub Actions**.
 3. **veyra-studio.github.io** → Settings → Pages → Source: switch from "Deploy from a branch" to **GitHub Actions**. Do this before merging; otherwise the push to `main` publishes the repository's raw files instead of the build.
-4. Merge each repository's `claude/happy-gates-7en1kj` branch into `main` (the deploy workflows run on `main`; a pull request runs the build as a check first).
+4. ~~Merge each repository's `claude/happy-gates-7en1kj` branch into `main`~~ — done 2026-10-10 (PR #1 in each repository). The site deploys failed (see session log); merge the follow-up fix on the same branch name to redeploy.
 
 ## Status
 
@@ -41,6 +41,7 @@ These are the owner's call (repository settings, merging into `main`):
 ### Phase 3 — Next
 - **Ship**: owner actions above, then confirm both live URLs (never verified from the session: the sandbox cannot reach `*.github.io`).
 - **Abali polish**: real-GPU performance pass (profiling on mid-range Android/iOS), optional audio sprite instead of synthesized pop, a short end-card share flow, Persian copy review by a native copywriter.
+- **Integration**: npm installs the devDependencies of a `file:`-linked package, so the sites also install the engine's test toolchain (vitest, jsdom, TypeScript 7). Harmless but wasteful: strip `devDependencies` from the packed `package.json`, or vendor the tarball itself.
 - **Engine**: direction-aware horizontal scroll section helper, `stage.media()` breakpoint signals, WebGPU path via `three/webgpu`, GLSL utility chunks (noise, SDFs), a scene timeline scrubber in the debug overlay, audio sprites, published npm package (claim `@veyra` scope).
 - **Studio site**: `/docs/` section generated from `veyra-core/docs`, more case studies as showcases ship.
 
@@ -56,3 +57,4 @@ These are the owner's call (repository settings, merging into `main`):
 ### 2026-10-10 — session 1 (continued)
 - Owner installed the Claude GitHub App; `claude/happy-gates-7en1kj` pushed to all three repositories.
 - No workflow has run on GitHub yet: they trigger on `main`, pull requests, or manual dispatch, and manual dispatch only works once the workflow file is on the default branch.
+- Owner merged PR #1 in each repository. Core CI passed (PR and `main`). Both site deploys failed in the build job: "Cannot find module '@veyra/core'". Cause: the sites' bare `dist/` ignore rule also matched `vendor/veyra-core/dist/`, so the engine's JS and type declarations were never committed (local builds used the files on disk). Fix: anchor the rule (`/dist/`), commit the vendored `dist/` (byte-identical to the release tarball), and `engine:update` now refuses to finish when a vendored file is ignored. Verified from fresh clones exactly as CI runs: `npm ci`, build, the workflow's guard steps, `npm run verify`.
