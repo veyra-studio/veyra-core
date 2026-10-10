@@ -19,7 +19,7 @@ Projects install the engine from the `release` branch, which CI publishes from e
 
 ## Layout
 
-- `src/core` math, ease, signal, ticker, noise, terrain (no DOM) · `src/motion` timeline/spring/decay/values/style/stagger/flip · `src/env` viewport/pointer/visibility · `src/scroll` controller + horizontal sections · `src/layout` rect cache · `src/scene` · `src/text` joining types, splitText, kashida, scramble · `src/interaction` drag/magnetic/tilt/cursor · `src/effects` marquee · `src/media` image sequences · `src/assets` · `src/quality` · `src/sound` · `src/debug` · `src/stage.ts` composition root · `src/three` (`@veyra/core/three`: layer, profile, studio, condensation, floor, shadow, terrain, noise textures) · `src/glsl` (`@veyra/core/glsl`).
+- `src/core` math, ease, signal, ticker, noise, terrain (no DOM) · `src/motion` timeline/spring/decay/values/style/stagger/flip · `src/env` viewport/pointer/visibility · `src/scroll` controller + horizontal sections · `src/layout` rect cache · `src/scene` · `src/text` joining types, splitText, kashida, scramble · `src/interaction` drag/magnetic/tilt/cursor · `src/effects` marquee · `src/media` image sequences · `src/assets` · `src/quality` · `src/sound` · `src/debug` · `src/stage.ts` composition root · `src/three` (`@veyra/core/three`: layer, profile, studio, condensation, floor, shadow, refractive solids, terrain, noise textures) · `src/glsl` (`@veyra/core/glsl`).
 - `examples/` seven live examples; `test/` unit tests; `scripts/verify-examples.mjs` browser checks; `docs/` guide, architecture (ADRs), integration, plan.
 
 ## Conventions
