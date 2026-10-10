@@ -36,6 +36,14 @@ export interface ThreeLayerOptions {
      * instead of waiting for slow frames to say so. Default `0`; `false` leaves it.
      */
     softwareQuality?: number | false;
+    /**
+     * Over a transparent canvas, let transmissive materials (glass, ice,
+     * water) show the page through themselves. three.js fills the empty
+     * background they refract with half-transparent white, which turns clear
+     * glass milky over a dark page. Opaque objects behind them still refract.
+     * Default `false` (three.js behavior); also settable on the layer.
+     */
+    seeThroughGlass?: boolean;
     /** Called every frame before rendering. */
     onFrame?: (layer: ThreeLayer, frame: Readonly<Frame>) => void;
 }
@@ -78,6 +86,8 @@ export declare class ThreeLayer {
     readonly canvas: HTMLCanvasElement;
     /** True when WebGL runs in software (no GPU): see `isSoftwareRenderer`. */
     readonly software: boolean;
+    /** See `ThreeLayerOptions.seeThroughGlass`. */
+    seeThroughGlass: boolean;
     /** Viewport size in CSS pixels. */
     width: number;
     height: number;

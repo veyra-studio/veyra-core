@@ -46,7 +46,8 @@ export class Profile {
     /** Outline length from the first point to each point. */
     lengths;
     constructor(points, options = {}) {
-        const input = points.map((p) => (p instanceof THREE.Vector2 ? p.clone() : new THREE.Vector2(p[0], p[1])));
+        // By shape rather than instanceof: a project may load its own copy of three.js.
+        const input = points.map((p) => ('x' in p ? new THREE.Vector2(p.x, p.y) : new THREE.Vector2(p[0], p[1])));
         if (input.length < 2)
             throw new Error('[veyra] Profile needs at least two points');
         this.points = smooth(input, options.samples ?? 6, new Set(options.corners ?? []));

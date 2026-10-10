@@ -60,6 +60,8 @@ export class ThreeLayer {
     canvas;
     /** True when WebGL runs in software (no GPU): see `isSoftwareRenderer`. */
     software;
+    /** See `ThreeLayerOptions.seeThroughGlass`. */
+    seeThroughGlass;
     /** Viewport size in CSS pixels. */
     width = 1;
     height = 1;
@@ -96,6 +98,16 @@ export class ThreeLayer {
         this.maxDpr = options.maxDpr ?? 2;
         this.autoRender = options.autoRender ?? true;
         this.software = isSoftwareRenderer(this.renderer.getContext());
+        this.seeThroughGlass = options.seeThroughGlass ?? false;
+        // three.js clears its transmission buffer to (0xffffff, 0.5) whenever the
+        // canvas clear alpha is below 1. Clear it to transparent black instead,
+        // so what glass refracts of the empty background is the page itself.
+        const setClear = this.renderer.setClearColor.bind(this.renderer);
+        this.renderer.setClearColor = (color, alpha) => {
+            if (this.seeThroughGlass && alpha === 0.5 && this.renderer.getRenderTarget() !== null && new THREE.Color(color).getHex() === 0xffffff)
+                return setClear(0x000000, 0);
+            return setClear(color, alpha);
+        };
         if (this.software && options.softwareQuality !== false)
             stage.quality?.set(options.softwareQuality ?? 0);
         this.camera = new THREE.PerspectiveCamera(options.fov ?? 35, 1, 1, 10000);
