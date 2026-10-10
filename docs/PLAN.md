@@ -18,12 +18,12 @@ Master tracker for the three Veyra repositories. Keep it current: it is how work
 
 ## ⚠️ Owner actions
 
-Done: GitHub access, Pages set to GitHub Actions in both site repositories, first merges (both sites deployed from `main` on 2026-10-10), engine 0.2 merged and released, both sites switched to the `release` branch and deployed.
+Done: GitHub access, Pages set to GitHub Actions in both site repositories, both sites deployed from `main`, the engine released from the `release` branch (0.2 → 0.4.2), the studio's 0.2 showcase and the Abali redesign merged. Every work branch is merged and deleted: each repository has only `main` (plus veyra-core's `release`, the build branch the sites install from — CI writes it, keep it).
 
 Open:
 
-1. **Studio 0.2 showcase**: review and merge `claude/happy-gates-7en1kj` in `veyra-studio.github.io` (the "New in 0.2" row) once its pull request is open and green.
-2. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
+1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
+2. *(Optional)* A native Persian copywriter's read of Abali's copy («خنکی صدا دارد.» and the chapters), and a check on real mid-range phones.
 
 ## Status
 
@@ -34,7 +34,7 @@ Open:
 - Docs: README, guide, architecture/ADRs, integration, this plan. CI workflow. Release packing.
 
 ### Phase 2 — Showcase & studio site ✅ (first release)
-- **Abali**: complete film — loader (crown cap), hero (procedural bottle in front of Nastaliq headline), label push-in with perspective-correct 3D→2D hand-off, label → Alborz landscape morph, place chapter with snow and wind, fizz chapter with shake-to-pressurize interaction, Lalezar "whites" with per-letter joined animation, sofreh flat-lay, finale pop. Synthesized optional sound. Reduced-motion and no-WebGL fallbacks. Production verification script (`npm run verify`).
+- **Abali** (first concept, replaced in Phase 4): loader, procedural bottle, label push-in, landscape morph, fizz chapter, sofreh flat-lay, finale pop; optional synthesized sound; reduced-motion and no-WebGL fallbacks; `npm run verify`.
 - **Studio site**: bilingual design (EN/FA designed separately), woven "veil" hero, live engine demos (frame loop, spring, scroll progress, Persian splitting naive vs Veyra, adaptive quality), Abali case study, studio/engine/showcase relationship, principles, code sample, bilingual 404, language-switch view transitions, hreflang/OG/sitemap. Verification script.
 - Deploy workflows in both site repos.
 
@@ -43,11 +43,17 @@ Open:
 - **Distribution**: `release` branch published by CI (`scripts/release-branch.mjs`, tested against a local bare repository: first publish, no-op re-run, version bump with history kept, install into Abali). Fixes the old follow-up: installs no longer pull the engine's test toolchain (Abali: 89 → 33 packages).
 - **Sites**: both depend on `github:veyra-studio/veyra-core#release` (lockfiles pin the 0.2.0 release commit), `vendor/` is gone, and the deploy workflows install the newest release, write `engine.json`, accept `repository_dispatch` and check hourly. Deployed from `main` on 2026-10-10.
 
-### Phase 4 — Next
-- **Ship**: confirm both live URLs in a browser (the sandbox cannot reach `*.github.io`).
-- **Abali polish**: real-GPU performance pass (profiling on mid-range Android/iOS), optional audio sprite instead of synthesized pop, a short end-card share flow, Persian copy review by a native copywriter.
+### Phase 4 — Engine 0.3–0.4 & the Abali redesign ✅
+- **Engine 0.3**: turned shapes (`Profile`: measured silhouettes, offsets, volumes, label bands), studio light (`studioEnvironment`), condensation maps, `ReflectiveFloor`, `ContactShadow`, terrain (`heightfield`, `erodedNoise`, `ridgedNoise`, `bakeSunlight`, `bakeOcclusion`, `heightfieldMesh`, worker-friendly), sound one-shots (`SoundBus.tone`/`burst`); example 07 *Product & terrain* with pixel-probe checks.
+- **Engine 0.4**: noise baked into a texture with its analytic gradient (`noiseTexture`, `tilingNoise`; GLSL `tfbm`/`tfbmd`, 2D and triplanar) — one read per octave instead of dozens of hashes. **0.4.1**: the quality governor drops to its minimum when frames stay over 250 ms (it used to ignore them as stalls). **0.4.2**: software rendering is detected (`isSoftwareRenderer`; `ThreeLayer.software`, `softwareQuality`) and starts at the lowest quality. 134 unit tests; seven examples verified in headless Chromium (two timing-dependent checks made robust).
+- **Abali, «خنکی صدا دارد.»**: the sounds of opening a cold one — «تق»، «پیس»، «قلپ، قلپ»، «آخیش». A bottle measured from photographs (profile, glass with condensation, doogh, label, 21-flute crown cap) on black acrylic with ice; a steel opener that lies on the cap, hooks the skirt and pries; a cap with real gravity that bounces and settles; a breath of cold fog; foam you build by shaking; a winter valley in the Central Alborz (terrain baked in a worker, detail from a noise texture, 60 fps on an M1); a block-printed sofreh set dish by dish in real time (koobideh, grilled tomatoes, rice, sabzi khordan, red onion, sumac, lavash, spoon and fork, a glass of doogh with ice, mint and a straw); a finale where you open it. Events are triggered by the scroll and play in real time, reversibly; camera moves follow the scroll. No invented brand facts; sources in the footer; the unofficial-concept disclaimer stays. `npm run verify` passes on SwiftShader and on the GPU.
+- **Studio site**: the Abali case follows the new headline (tagline, bodies, hero image), engine 0.4.2.
+- **Repositories**: descriptions, homepages and topics set on all three.
+
+### Phase 5 — Next
+- **Abali**: profile on real mid-range Android/iOS phones; a native copywriter's review; perhaps recorded sounds as an audio sprite beside the synthesized ones; a short share card at the end.
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
-- **Studio site**: the 0.2 showcase is built (in review, see the session log); next, `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
+- **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
 
 ## Session log
 
@@ -76,3 +82,16 @@ Open:
 ### 2026-10-10 — session 1, round 4 (owner request: fix release commits that only change `gitHead`)
 - Merging the docs-only plan update (#4) wrote `release` commit `dc67af2`, whose only change was `gitHead`; the sites' hourly check would count it as a new engine and rebuild with the same one. `scripts/release-branch.mjs` now compares the package with the previous `gitHead` in place and commits, recording the new source commit, only when the packed files change.
 - Tested against a local bare remote: first publish (commit + `v0.2.0`), re-run on the same commit (nothing), a docs-only commit (the old script commits, the new one doesn't), a source change (commit with the new `gitHead`), a version bump (commit + `v0.2.1`, history kept); a no-op run reports `changed=false`, so no `engine-updated` dispatch goes out.
+
+### 2026-10-10 — session 2 (owner brief: redesign Abali — real 3D, new copy, verifiable facts only)
+- veyra-core: the pending `claude/happy-gates-7en1kj` fix opened and merged (#5). Engine 0.3 (#6): product rendering, terrain and sound (see Phase 4); real-browser pixel probes caught a frustum-culled contact shadow and a floor reflection invisible at grazing angles.
+- Abali redesigned (#5) around three sounds, then refined on review (#6): events that froze mid-air when scrubbed now play in real time and reverse; one continuous camera without dead zones; foam → mist → mountains and mist → cloth transitions without white gaps; dishes set down by hand; koobideh and grilled tomatoes rebuilt; tall screens frame the table below the menu card.
+- Performance: the mountain chapter ran at 15–20 fps on an M1 (dozens of noise hashes per pixel). Engine 0.4 (#7) bakes the noise into a texture with its gradient → sharper rock and 60 fps. Under SwiftShader frames took ~6 s and the governor never reacted (it ignored frames over 250 ms) → 0.4.1 (#8); software rendering now starts low → 0.4.2 (#9); Abali draws a lean terrain on the low tier.
+- Studio site: the Abali case rewritten for the new concept (#6), with a recaptured hero image.
+
+### 2026-10-10 — session 2, round 2 (owner review of the live site)
+- Owner: tidy the branches so `main` is the latest everywhere; add repository descriptions. Done: every merged work branch deleted (pull requests are now merged with `--delete-branch`); descriptions, homepages and topics set.
+- Abali (#7): the hero says «خنکی صدا دارد.» over «از درِ بطری تا قلپِ اول.» (no more «تق، پیس، آخیش!» at the top or in the footer, which now says «نوش جان!»); the loader says «یک لحظه…». The opener was rolled on its side, came in diagonally and was no wider than the cap → a 12 cm opener that lies on the cap, hooks under the skirt and pries, seen from a little above. The cap fell at 1/26 of real gravity → a free body that hops, tumbles, bounces and settles like a coin; the finale shows the opener too. The "steam like tea" → a breath of cold fog, gone in a second. Gulps («قلپ، قلپ») after the opening sounds. The glass of doogh read as yogurt → clear refracting glass, fizz, ice, mint and a straw.
+- Abali (#8), the sofreh: storage creases and hand-printing irregularities on the cloth, pressed flat under the dishes; sabzi khordan with radishes and spring onions; a red onion with violet-edged rings; coarse dark sumac; real lavash; a spoon and a fork; a deeper window light.
+- Studio site (#7): the new headline in the Abali case, hero image recaptured, engine 0.4.2.
+- Verified each step: engine `npm run check` and examples; `npm run build` + `npm run verify` (CPU and GPU) in Abali, `npm run build` + `npm run verify` in the studio site; frame-by-frame slow-motion captures of the opener and the cap; live sites checked after every deploy.
