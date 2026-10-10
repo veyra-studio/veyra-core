@@ -28,6 +28,7 @@ export default defineConfig({
         interaction: resolve(root, 'interaction/index.html'),
         horizontal: resolve(root, 'horizontal/index.html'),
         procedural: resolve(root, 'procedural/index.html'),
+        studio: resolve(root, 'studio/index.html'),
       },
     },
   },

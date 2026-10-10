@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Product & terrain — Veyra examples</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>07 · Product & terrain</span></header>
+    <main>
+      <section class="intro">
+        <h1>Studio light, without a studio.</h1>
+        <p>
+          A bottle turned from a measured silhouette (<code>Profile</code>), its label on a conical band that keeps the
+          artwork's proportions, cold condensation on the glass, a softbox environment baked from code
+          (<code>studioEnvironment</code>), a glossy floor that reflects it (<code>ReflectiveFloor</code>) and a soft
+          contact shadow (<code>ContactShadow</code>).
+        </p>
+      </section>
+      <section class="stage-wrap">
+        <div class="bottle-slot" id="slot"></div>
+        <p class="ex-label">Scroll turns the bottle</p>
+      </section>
+      <section class="terrain-wrap">
+        <p class="ex-label">Terrain</p>
+        <h2>Mountains from noise, lit once.</h2>
+        <p>
+          A height field from eroded noise, sunlight and shadows baked by marching toward the sun, ambient occlusion
+          from the horizon — in a worker-friendly, DOM-free module — then a mesh and a ten-line shader.
+        </p>
+        <canvas id="terrain" width="1200" height="600"></canvas>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

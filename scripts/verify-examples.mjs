@@ -6,7 +6,8 @@
 // failed requests, and exercises the features each page demonstrates:
 // dragging and snapping in both directions, keyboard stepping, FLIP,
 // pointer effects, marquees, horizontal sections (both directions, snap,
-// focus), kashida, scramble, the GLSL chunks compiling, image sequences.
+// focus), kashida, scramble, the GLSL chunks compiling, image sequences,
+// product rendering (floor reflection, contact shadow) and baked terrain.
 // Screenshots go to verify-output/.
 import { createReadStream, existsSync, mkdirSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
@@ -272,6 +273,32 @@ try {
     const frame = await page.evaluate(() => window.__ex.sequence.frame)
     check(Math.abs(frame - 36) <= 2, `image sequence shows the middle frame halfway through (${frame})`)
     await page.screenshot({ path: `${OUT}procedural-sequence.png` })
+  })
+
+  await visit(browser, 'Product & terrain', '/studio/', async (page) => {
+    await scrollToSection(page, '.stage-wrap', 0.2)
+    await page.waitForFunction(() => (window.__ex.status.frames ?? 0) > 3, null, { timeout: 20000 })
+    // Let the sticky stage settle where the scroll put it.
+    await page.waitForFunction(() => Math.abs(window.__ex.slotRect().top - innerHeight * 0.12) < 2, null, { timeout: 10000 })
+    await wait(page, 400)
+    const volume = await page.evaluate(() => window.__ex.status.volume)
+    check(volume > 0.04 && volume < 0.07, `turned bottle has a sensible volume (${volume.toFixed(4)} cubic units)`)
+    const probe = await page.evaluate(() => {
+      const r = window.__ex.slotRect()
+      const cx = r.left + r.width / 2
+      const base = r.top + r.height
+      const at = (y) => window.__ex.sample(cx, Math.min(innerHeight - 4, y))
+      return { body: window.__ex.sample(cx, r.top + r.height * 0.6), near: at(base + 10), far: at(base + r.height * 0.2), contact: window.__ex.sample(cx + r.width * 0.42, base + 2) }
+    })
+    check(probe.body[3] > 240 && probe.body[0] > probe.body[2] + 30, `bottle renders, its red liquid seen through the glass (rgba ${probe.body.join(', ')})`)
+    check(probe.near[3] > probe.far[3] + 10 && probe.near[3] > 20, `floor reflects the bottle and fades with height (alpha ${probe.near[3]} near → ${probe.far[3]} far)`)
+    check(probe.contact[3] > 20, `contact shadow darkens the floor at the foot (alpha ${probe.contact[3]})`)
+    await page.screenshot({ path: `${OUT}studio-product.png` })
+    const terrain = await page.evaluate(() => window.__ex.status.terrain)
+    check(terrain.shadowed > 0.03 && terrain.shadowed < 0.8, `terrain bake casts mountain shadows (${(terrain.shadowed * 100).toFixed(0)}% of samples in shadow, ${terrain.ms} ms)`)
+    await page.$eval('#terrain', (el) => el.scrollIntoView({ block: 'center' }))
+    await wait(page, 600)
+    await page.screenshot({ path: `${OUT}studio-terrain.png` })
   })
 
   await visit(browser, 'Scroll scenes (regression)', '/scroll-scenes/', async (page) => {
