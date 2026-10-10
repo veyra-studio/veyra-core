@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <header class="ex-header"><a href="../">← Veyra examples</a><span>02 · script-aware splitting</span></header>
+    <header class="ex-header"><a href="../">← Veyra examples</a><span>02 · Persian typography</span></header>
     <main>
       <section class="intro">
         <h1>Split Persian letters <em>without breaking them.</em></h1>
@@ -43,6 +43,16 @@
             آبعلی نامِ جایی است در البرز؛ میانِ کوه‌ها، با چشمه‌هایش و برفِ زمستانش. هر بطری، تکه‌ای از همین منظره است که
             تا سرِ سفره آمده.
           </p>
+        </div>
+        <div class="row">
+          <p class="ex-label"><code>kashida()</code> — calligraphic elongation (tatweel) on valid connections · level <output id="k-level" for="k-range">0</output></p>
+          <p class="sample display" dir="rtl" lang="fa" id="kashida">کشیده بنویس، آرام بخوان</p>
+          <input type="range" id="k-range" min="0" max="10" step="1" value="0" aria-label="Kashida level" />
+        </div>
+        <div class="row">
+          <p class="ex-label"><code>scrambleText()</code> — decode with each script's own letters</p>
+          <p class="sample" dir="rtl" lang="fa" id="scramble-fa">حرف به حرف، رمزگشایی</p>
+          <p class="sample small" dir="ltr" lang="en" id="scramble-en">Decoded, letter by letter</p>
         </div>
       </section>
     </main>

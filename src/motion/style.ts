@@ -20,10 +20,12 @@ export interface TransformState {
   scaleY: number
   skewX: number
   skewY: number
+  /** Distance (px) of a `perspective()` applied before the other functions. `0` = none. */
+  transformPerspective: number
 }
 
 const TRANSFORM_KEYS = new Set<string>([
-  'x', 'y', 'z', 'rotate', 'rotateX', 'rotateY', 'scale', 'scaleX', 'scaleY', 'skewX', 'skewY',
+  'x', 'y', 'z', 'rotate', 'rotateX', 'rotateY', 'scale', 'scaleX', 'scaleY', 'skewX', 'skewY', 'transformPerspective',
 ])
 
 const transforms = new WeakMap<Element, TransformState>()
@@ -35,7 +37,7 @@ function isElement(target: unknown): target is HTMLElement | SVGElement {
 function transformState(el: Element): TransformState {
   let state = transforms.get(el)
   if (!state) {
-    state = { x: 0, y: 0, z: 0, rotate: 0, rotateX: 0, rotateY: 0, scale: 1, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 }
+    state = { x: 0, y: 0, z: 0, rotate: 0, rotateX: 0, rotateY: 0, scale: 1, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0, transformPerspective: 0 }
     transforms.set(el, state)
   }
   return state
@@ -45,7 +47,7 @@ const len = (v: TweenValue) => (typeof v === 'number' ? `${v}px` : v)
 
 /** Composes the stored transform state into a CSS transform string. */
 export function composeTransform(s: TransformState): string {
-  let out = ''
+  let out = s.transformPerspective ? `perspective(${s.transformPerspective}px) ` : ''
   if (s.x !== 0 || s.y !== 0 || s.z !== 0) out += `translate3d(${len(s.x)}, ${len(s.y)}, ${len(s.z)}) `
   if (s.rotateX) out += `rotateX(${s.rotateX}deg) `
   if (s.rotateY) out += `rotateY(${s.rotateY}deg) `

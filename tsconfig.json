@@ -22,6 +22,9 @@
       ],
       "@veyra/core/three": [
         "./src/three/index.ts"
+      ],
+      "@veyra/core/glsl": [
+        "./src/glsl/index.ts"
       ]
     }
   },

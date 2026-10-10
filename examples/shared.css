@@ -30,3 +30,5 @@ a { color: inherit; }
   letter-spacing: 0.08em;
   color: var(--muted);
 }
+/* Letter-spacing breaks Arabic-script joining; Persian labels use the page font. */
+.ex-label:lang(fa) { font-family: inherit; letter-spacing: 0; text-transform: none; font-size: 13px; }

@@ -1,0 +1,34 @@
+@import '@fontsource-variable/vazirmatn';
+
+code { font-family: ui-monospace, monospace; font-size: 0.9em; background: #0000000d; padding: 0.1em 0.35em; border-radius: 4px; }
+[lang='fa'] { font-family: 'Vazirmatn Variable', system-ui, sans-serif; }
+.intro, .between, .outro { padding: clamp(1rem, 4vw, 3rem); max-width: 70rem; }
+.intro { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; }
+.intro h1 { font-size: clamp(2.5rem, 8vw, 7rem); line-height: 0.95; letter-spacing: -0.045em; margin: 0 0 1.5rem; }
+.intro h1 em { font-style: normal; color: var(--signal); }
+.intro p { max-width: 62ch; color: #3c3a36; }
+.between, .outro { min-height: 50vh; display: grid; place-items: center start; font-size: clamp(1.25rem, 3vw, 2rem); letter-spacing: -0.02em; }
+
+/* The pattern: tall section (height set by Veyra) › sticky pin › flex track. */
+.h-pin { position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); }
+.h-head { display: flex; justify-content: space-between; align-items: end; padding: 1.5rem clamp(1rem, 4vw, 3rem) 0; }
+.h-count { margin: 0; font: 600 clamp(1.5rem, 4vw, 3rem)/1 ui-monospace, monospace; letter-spacing: -0.04em; }
+.h-track { display: flex; gap: 3vw; align-items: center; width: max-content; padding-inline: clamp(1rem, 4vw, 3rem); }
+.panel {
+  --p: var(--panel-progress, 0);
+  flex: 0 0 auto; width: min(78vw, 34rem); height: min(68vh, 36rem); border-radius: 8px; padding: 1.5rem;
+  display: grid; grid-template-rows: 1fr auto auto auto; gap: 0.5rem; background: var(--ink); color: var(--paper);
+  /* Ease in and out as the panel crosses the viewport. */
+  opacity: calc(0.45 + 0.55 * (1 - 2 * abs(var(--p) - 0.5)));
+}
+.panel:nth-child(2n) { background: #1c3f94; }
+.panel .art {
+  border-radius: 4px; overflow: hidden;
+  background: radial-gradient(circle at calc(30% + var(--p) * 40%) 40%, var(--signal) 0 18%, transparent 19%),
+    repeating-linear-gradient(90deg, #ffffff12 0 2px, transparent 2px 28px);
+}
+.panel h2 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.03em; line-height: 1; }
+.panel p { margin: 0; opacity: 0.8; }
+.panel a { color: inherit; font: 500 13px/1.4 ui-monospace, monospace; }
+[lang='fa'] .panel h2 { letter-spacing: 0; font-weight: 800; }
+@supports not (opacity: calc(1 - abs(0.5))) { .panel { opacity: 1; } }

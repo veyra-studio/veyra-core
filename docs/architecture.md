@@ -11,7 +11,7 @@ It is intentionally **not** a page builder, a component library, a template syst
 1. **One loop.** Everything that moves runs inside a single `requestAnimationFrame`, ordered by phase. One `time`, one place to pause, no rAF duplication.
 2. **Native first.** Scrolling stays native (smoothed, not hijacked). Pinning is `position: sticky`. Text stays real HTML. Accessibility, find-in-page, keyboard and restoration keep working by construction.
 3. **Read once, write often.** Layout is measured on change, not per frame. Per-frame work is arithmetic and writes.
-4. **Every script, every direction.** RTL and Arabic-script typography are first-class, not an afterthought. Direction-aware helpers (`inlineSign`) make "forward" follow the reading direction.
+4. **Every script, every direction.** RTL and Arabic-script typography are first-class, not an afterthought. Direction-aware behavior — horizontal sections, marquees, carousels, `inlineSign` — makes "forward" follow the reading direction, and Persian gets its own typographic tools (joined splitting, kashida).
 5. **Quality adapts.** Devices differ by an order of magnitude. The engine measures and adapts rather than guessing.
 6. **Motion is optional.** Reduced motion is a stage-level signal; smoothing turns off, `stage.animate` jumps to end states, projects choose their own reduced variants.
 7. **Small and owned.** Zero runtime dependencies in the core. Renderers are integrations.
@@ -35,22 +35,28 @@ Projects register with `stage.onFrame(fn, Phase.update)` (or any number between 
 
 ```
 src/
-  core/      math, ease, signal, ticker            — no DOM required
-  motion/    spring, values, style, timeline       — DOM optional
-  env/       viewport, pointer, capabilities
-  scroll/    scroll controller
-  layout/    rect cache
-  scene/     scroll scenes
-  text/      script (joining types, bidi helpers), split, draw (DOM text → canvas)
-  assets/    preloader
-  quality/   adaptive governor
-  sound/     sound bus
-  debug/     overlay
-  stage.ts   composition root
-  three/     optional three.js integration (separate entry point)
+  core/         math, ease, signal, ticker, noise         — no DOM required
+  motion/       spring, decay, values, style, timeline,   — DOM optional
+                stagger, flip
+  env/          viewport, pointer, capabilities, visibility
+  scroll/       scroll controller, horizontal sections (plugin)
+  layout/       rect cache
+  scene/        scroll scenes
+  text/         script (joining types, bidi helpers), split, draw (DOM text → canvas),
+                kashida, scramble
+  interaction/  drag, magnetic, tilt, cursor (plugins)
+  effects/      marquee (plugin)
+  media/        image sequences (plugin)
+  assets/       preloader
+  quality/      adaptive governor
+  sound/        sound bus
+  debug/        overlay
+  stage.ts      composition root
+  three/        optional three.js integration (separate entry point)
+  glsl/         shader building blocks as strings (separate entry point)
 ```
 
-Dependencies flow downward: `core` depends on nothing; `stage.ts` wires everything; `three/` depends on `stage` and `three`.
+Dependencies flow downward: `core` depends on nothing; `stage.ts` wires everything; plugins (`interaction/`, `effects/`, `media/`, `scroll/horizontal`) depend on the stage's types only; `three/` depends on `stage` and `three`; `glsl/` depends on nothing.
 
 ## Decision log
 
@@ -82,16 +88,26 @@ The governor detects the refresh rate during warm-up, then evaluates frame-time 
 
 Reactive state (`viewport.width`, `quality.dpr`, `reducedMotion`) uses tiny explicit signals: subscribe to what you need, computed values list their inputs. No proxies, no hidden graphs, nothing to debug.
 
-### ADR-008 — Distribution as a packed tarball until npm publication
+### ADR-008 — Distribution as a packed tarball until npm publication *(superseded by ADR-010)*
 
-Showcases depend on `vendor/veyra-core/` — the unpacked contents of the release tarball, i.e. exactly what `npm publish` would upload — instead of a git dependency or a registry. Deploys never depend on another repository's state, no credentials are needed, and switching to the npm registry later is a one-line change. See [integration.md](integration.md).
+Showcases depended on `vendor/veyra-core/` — the unpacked contents of the release tarball, i.e. exactly what `npm publish` would upload — instead of a git dependency or a registry. Deploys never depended on another repository's state and needed no credentials. In practice every engine change needed a manual vendoring step in every project, and a vendoring mistake (a gitignored `dist/`) broke both first deploys.
 
 ### ADR-009 — Pixel camera for DOM ↔ WebGL
 
 The three.js layer positions a perspective camera so that at `z = 0` one world unit equals one CSS pixel and the origin is the viewport center. DOM rects map to world positions with no conversion code, while depth and perspective remain available.
 
+### ADR-010 — Projects follow the engine on GitHub through a CI-built `release` branch
+
+Owner decision (2026-10-10): sites should pick up engine changes without copying files. Projects depend on `"@veyra/core": "github:veyra-studio/veyra-core#release"`. The `release` branch is written only by CI, after typecheck, tests and the examples build pass on `main`: it holds exactly the packed package (what `npm publish` would upload) with `devDependencies` and `scripts` removed, so installs are fast, need no build step and pull no test toolchain. Its history is kept, so commits pinned in project lockfiles stay fetchable; each new version also gets a `v<version>` tag for pinning.
+
+Projects install the latest `release` commit at build time and record what they deployed in `engine.json`. They rebuild when the engine changes — immediately through a `repository_dispatch` if the engine repository holds a token for it, otherwise through an hourly check. Trade-off: a project build is no longer reproducible from its own commit alone; mitigations are that only green engine builds are published, the deployed engine commit is recorded, a failed build leaves the previous deployment live, and a project can pin a tag or commit at any time. See [integration.md](integration.md).
+
+### ADR-011 — Stage-dependent capabilities are plugins
+
+Horizontal sections, dragging, magnetic, tilt, cursor, marquee and image sequences are `stage.use(plugin(...))` calls, not stage methods. Bundles carry only what a page uses (the package is `sideEffects: false`), every plugin gets the stage's ticker, layout cache, scroll, pointer, reduced-motion signal and `onRefresh` hook, and `stage.destroy()` tears them down. Pure capabilities (`flip`, `stagger`, `kashida`, `scrambleText`, noise) stay plain functions usable without a stage.
+
 ## Testing strategy
 
-- **Unit tests** (Vitest + jsdom) for pure logic: math, easing, springs (analytic exactness, stability), ticker ordering and fault tolerance, timeline sequencing/scrubbing/positions, scene anchors and transitions, joining types and bidi grouping, preloader, quality governor.
-- **Examples** double as integration tests in a real browser (rendered with Playwright during development).
+- **Unit tests** (Vitest + jsdom) for logic: math, easing, springs and decay (analytic exactness, stability), noise, stagger, ticker ordering and fault tolerance, timeline sequencing/scrubbing/positions, scene anchors and transitions, joining types, bidi grouping and kashida points, scramble, FLIP inversion, drag physics, horizontal sections, marquee, pointer effects (with mocked geometry), preloader, quality governor.
+- **Examples** are integration tests in a real browser: `npm run verify:examples` drives every example in headless Chromium (dragging in both directions, keyboard stepping, FLIP, pointer effects, marquees, horizontal sections with snapping and focus, kashida, scramble, the GLSL chunks compiling under WebGL2, image sequences, reduced motion) and fails on any console error.
 - Projects (Abali, the studio site) carry their own end-to-end verification scripts.
