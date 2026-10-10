@@ -310,6 +310,8 @@ try {
     check(probe.contact[3] > 20, `contact shadow darkens the floor at the foot (alpha ${probe.contact[3]})`)
     const neck = await page.evaluate(() => window.__ex.status.neckAlpha())
     check(neck.clear < neck.milky && neck.clear < 100, `see-through glass shows the page behind the empty neck (alpha ${neck.milky} → ${neck.clear})`)
+    const solid = await page.evaluate(() => window.__ex.status.solid())
+    check(solid.tinted[3] === 255 && solid.clear[0] > solid.tinted[0] + 20, `clear solid is traced through: its glass tints the light behind it (rgba ${solid.clear.join(', ')} → ${solid.tinted.join(', ')})`)
     await page.screenshot({ path: `${OUT}studio-product.png` })
     const terrain = await page.evaluate(() => window.__ex.status.terrain)
     check(terrain.shadowed > 0.03 && terrain.shadowed < 0.8, `terrain bake casts mountain shadows (${(terrain.shadowed * 100).toFixed(0)}% of samples in shadow, ${terrain.ms} ms)`)
