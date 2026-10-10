@@ -496,6 +496,7 @@ const title = gl.mirrorText(document.querySelector('h1')!)      // real HTML →
 
 - At `z = 0`, 1 world unit = 1 CSS pixel; origin at the viewport center.
 - Pixel ratio follows the quality governor (capped by `maxDpr`).
+- Over a transparent canvas, `seeThroughGlass: true` lets glass, ice and water show the page through themselves (three.js otherwise fills what they refract of the empty background with half-transparent white, which turns clear glass milky over a dark page); opaque objects behind still refract. Also settable as `gl.seeThroughGlass`.
 - On a software renderer (no GPU: SwiftShader, llvmpipe…) the layer sets the stage's quality to its lowest level from the start (`gl.software` says so; `softwareQuality` picks another level, `false` opts out). `isSoftwareRenderer(gl)` is exported for your own checks.
 - Set `autoRender: false` and render yourself in `onFrame` for custom passes.
 - `drawElementText(el)` (exported from `@veyra/core` too) draws any element's text into a 2D canvas with its real font and line breaks — usable as a WebGL texture or in Canvas2D.
