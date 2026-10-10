@@ -89,7 +89,7 @@ try {
 
   await visit(browser, 'Index', '/', async (page) => {
     const links = await page.$$eval('main li a', (as) => as.length)
-    check(links === 6, `lists all six examples (${links})`)
+    check(links === 7, `lists all seven examples (${links})`)
   })
 
   await visit(browser, 'Persian typography', '/persian-type/', async (page) => {
@@ -298,6 +298,8 @@ try {
     check(terrain.shadowed > 0.03 && terrain.shadowed < 0.8, `terrain bake casts mountain shadows (${(terrain.shadowed * 100).toFixed(0)}% of samples in shadow, ${terrain.ms} ms)`)
     await page.$eval('#terrain', (el) => el.scrollIntoView({ block: 'center' }))
     await wait(page, 600)
+    const detail = await page.evaluate(() => window.__ex.status.terrainDetail())
+    check(detail.detailed > detail.flat * 1.3, `noise texture adds rock detail to the terrain (neighbor contrast ${detail.flat.toFixed(2)} → ${detail.detailed.toFixed(2)})`)
     await page.screenshot({ path: `${OUT}studio-terrain.png` })
   })
 

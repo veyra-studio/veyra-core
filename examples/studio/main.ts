@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { bakeOcclusion, bakeSunlight, createStage, erodedNoise, heightfield, Phase, ridgedNoise } from '@veyra/core'
-import { condensationMaps, ContactShadow, heightfieldGeometry, Profile, ReflectiveFloor, studioEnvironment, threeLayer } from '@veyra/core/three'
+import { glslNoiseTexture } from '@veyra/core/glsl'
+import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, studioEnvironment, threeLayer } from '@veyra/core/three'
 
 const stage = createStage({ quality: { dprRange: [1, 2] } })
 const status: Record<string, unknown> = {}
@@ -132,23 +133,32 @@ stage.onFrame(() => {
     range: [Math.round(field.min), Math.round(field.max)],
   }
   const geometry = heightfieldGeometry(field, { attributes: { aSun: sun, aOcclusion: ao } })
+  // Rock and drift detail read from a noise texture, not computed per pixel.
+  const noise = noiseTexture({ cells: 8 })
+  noise.anisotropy = r2.capabilities.getMaxAnisotropy()
   const material = new THREE.ShaderMaterial({
-    uniforms: { uSun: { value: sunDir } },
+    uniforms: { uSun: { value: sunDir }, uNoise: { value: noise }, uDetail: { value: 1 } },
     vertexShader: /* glsl */ `
       attribute float aSun; attribute float aOcclusion;
-      varying vec3 vN; varying float vS; varying float vA; varying float vH; varying float vD;
+      varying vec3 vN; varying float vS; varying float vA; varying float vD; varying vec3 vW;
       void main() {
-        vN = normal; vS = aSun; vA = aOcclusion; vH = position.y;
+        vN = normal; vS = aSun; vA = aOcclusion; vW = (modelMatrix * vec4(position, 1.0)).xyz;
         vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z;
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec3 uSun;
-      varying vec3 vN; varying float vS; varying float vA; varying float vH; varying float vD;
+      ${glslNoiseTexture}
+      uniform vec3 uSun; uniform sampler2D uNoise; uniform float uDetail;
+      varying vec3 vN; varying float vS; varying float vA; varying float vD; varying vec3 vW;
       void main() {
         vec3 n = normalize(vN);
-        float snow = smoothstep(0.62, 0.78, n.y) * smoothstep(500.0, 900.0, vH);
-        vec3 albedo = mix(vec3(0.28, 0.26, 0.24), vec3(0.92, 0.94, 0.97), snow);
+        // Triplanar, so cliffs don't streak: rock in the albedo, and its
+        // gradient (stored in the texture) bumps the normal.
+        float rock = tfbm(uNoise, 8.0, vW * 0.02, n, 4) * uDetail;
+        vec3 g = tfbmd(uNoise, 8.0, vW * 0.01, n, 3).yzw * uDetail;
+        n = normalize(n - (g - n * dot(g, n)) * 0.6);
+        float snow = smoothstep(0.62, 0.78, n.y + rock * 0.12) * smoothstep(500.0, 900.0, vW.y + rock * 140.0);
+        vec3 albedo = mix(vec3(0.28, 0.26, 0.24) * (1.0 + rock * 0.6), vec3(0.92, 0.94, 0.97), snow);
         vec3 col = albedo * (vec3(1.0, 0.95, 0.86) * max(dot(n, uSun), 0.0) * vS * 2.2 + vec3(0.42, 0.55, 0.75) * vA * 0.7);
         col = mix(col, vec3(0.72, 0.8, 0.9), 1.0 - exp(-vD * 0.00012));
         gl_FragColor = vec4(col, 1.0);
@@ -170,6 +180,30 @@ stage.onFrame(() => {
   }
   resize()
   stage.viewport.onLayout(resize)
+  // For the browser checks: fine contrast between neighboring pixels, with and without the detail.
+  const g2 = r2.getContext()
+  status.terrainDetail = () => {
+    const contrast = (detail: number) => {
+      material.uniforms.uDetail!.value = detail
+      r2.render(s2, cam)
+      const w = r2.domElement.width
+      const h = r2.domElement.height
+      const row = new Uint8Array(w * 4)
+      let sum = 0
+      let n = 0
+      for (const y of [0.45, 0.55, 0.65]) {
+        g2.readPixels(0, Math.round(h * y), w, 1, g2.RGBA, g2.UNSIGNED_BYTE, row)
+        for (let x = 4; x < w * 4; x += 4) {
+          sum += Math.abs(row[x]! - row[x - 4]!)
+          n++
+        }
+      }
+      return sum / n
+    }
+    const result = { flat: contrast(0), detailed: contrast(1) }
+    r2.render(s2, cam)
+    return result
+  }
 }
 
 // For the browser checks: render now and read one pixel (CSS coordinates).
