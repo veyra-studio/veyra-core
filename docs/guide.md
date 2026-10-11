@@ -478,7 +478,7 @@ stage.sound!.burst({ filter: 'highpass', from: 6000, to: 2400, gain: 0.25, decay
 stage.sound!.tone({ frequency: 3100, type: 'triangle', gain: 0.04, decay: 0.2, pan: 0.3 }) // a ring
 ```
 
-Sound never plays unless the visitor turned it on; the choice is remembered.
+Sound is off until the visitor turns it on — or on from the start with `createStage({ sound: { defaultOn: true } })`; either way the visitor's choice is remembered (`storageKey`). Browsers hold audio back until a user activation: a key, a click, a mouse press or the end of a touch (not a touch's start, not a scroll). The bus listens for each of these, in the capture phase, and starts or resumes the context then — also after the system suspended or interrupted it (another app, a phone call) — so "on" never stays silent; the sounds of that very gesture play too.
 
 ## Reduced motion
 
