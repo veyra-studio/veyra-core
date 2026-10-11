@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0 — 2026-10-11
+
+- **Fix — sound "on" but silent**: the bus started audio on `pointerdown` and `keydown`, but a touch's `pointerdown` isn't a user activation, so on phones a stored "on" stayed silent until the visitor toggled sound off and on; a context the system suspended or interrupted (iOS, another app, a call) stayed silent too. It now listens for every activation (`keydown`, `mousedown`, `pointerup`, `touchend`, `click`), in the capture phase, and resumes the context from any state; while a gesture's resume is under way (up to 250 ms) the bus counts as audible, so the sounds of that very gesture play.
+- **`defaultOn`** (`SoundOptions`): sound on for visitors who haven't chosen yet; audio starts at their first activation.
+
 ## 0.6.1 — 2026-10-10
 
 - **Steady tiers** (`steadyTier`, default `true`): once sustained slow frames push the quality level into a lower tier, it no longer climbs back into the tier it left in the same session (it still rises within its tier, and the pixel ratio with it). A device near a boundary used to step down, recover, climb back and step down again, so whatever a page swaps by tier (Abali's bottle glass) flickered between versions. Stalls and the warm-up don't fence a tier off; `quality.set()` lifts the limit.
