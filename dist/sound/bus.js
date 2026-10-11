@@ -1,19 +1,29 @@
 /**
- * Sound as an optional layer. Off by default, never required for
- * understanding the experience, persisted per visitor, unlocked on a user
- * gesture (as browsers require) and silenced while the tab is hidden.
+ * Sound as an optional layer. Off unless the site turns it on by default
+ * (`defaultOn`), never required for understanding the experience,
+ * persisted per visitor, unlocked on a user gesture (as browsers require)
+ * and silenced while the tab is hidden.
  */
 import { signal } from '../core/signal.js';
-function readStored(key) {
+function readStored(key, fallback) {
     if (!key)
-        return false;
+        return fallback;
     try {
-        return localStorage.getItem(key) === '1';
+        const stored = localStorage.getItem(key);
+        return stored === null ? fallback : stored === '1';
     }
     catch {
-        return false;
+        return fallback;
     }
 }
+/**
+ * Events that count as user activation, the only moments browsers let audio
+ * start: a key, a click, a mouse press, the end of a touch — not a touch's
+ * start, not a scroll or a wheel.
+ */
+const ACTIVATION = ['keydown', 'mousedown', 'pointerup', 'touchend', 'click'];
+/** While the context is being resumed from a gesture, sounds of that same gesture are let through. */
+const RESUME_GRACE_MS = 250;
 export class SoundBus {
     /** Whether the visitor wants sound. */
     enabled;
@@ -23,31 +33,36 @@ export class SoundBus {
     key;
     noiseCache = new Map();
     cleanups = [];
+    graceUntil = 0;
     constructor(options = {}) {
         this.key = options.storageKey ?? 'veyra:sound';
         this.volume = options.volume ?? 0.8;
-        this.enabled = signal(readStored(this.key));
+        this.enabled = signal(readStored(this.key, options.defaultOn ?? false));
         if (typeof window === 'undefined')
             return;
-        // A stored "on" still needs a gesture before audio may start.
+        // An "on" from storage or the default still needs a gesture before
+        // audio may start; so does a context the system suspended or
+        // interrupted (another app, a call). Listen on every activation, in the
+        // capture phase so the context is resuming before the page's own
+        // handlers play their sounds.
         const unlock = () => {
-            if (this.enabled.value)
-                void this.resume();
+            if (this.enabled.value && this.ctx?.state !== 'running')
+                void this.resume(true);
         };
-        window.addEventListener('pointerdown', unlock, { passive: true });
-        window.addEventListener('keydown', unlock);
+        for (const type of ACTIVATION)
+            window.addEventListener(type, unlock, { capture: true, passive: true });
         const onVisibility = () => {
             if (!this.ctx)
                 return;
             if (document.hidden)
                 void this.ctx.suspend();
             else if (this.enabled.value)
-                void this.ctx.resume();
+                void this.resume(false);
         };
         document.addEventListener('visibilitychange', onVisibility);
         this.cleanups.push(() => {
-            window.removeEventListener('pointerdown', unlock);
-            window.removeEventListener('keydown', unlock);
+            for (const type of ACTIVATION)
+                window.removeEventListener(type, unlock, { capture: true });
             document.removeEventListener('visibilitychange', onVisibility);
         });
     }
@@ -65,15 +80,20 @@ export class SoundBus {
     get output() {
         return this.context ? this.master : null;
     }
-    /** True when sound is wanted and the context is running. */
+    /**
+     * True when sound is wanted and the context is running — or is being
+     * resumed by the gesture under way, so that gesture's own sounds play.
+     */
     get audible() {
-        return this.enabled.value && this.ctx?.state === 'running';
+        if (!this.enabled.value || !this.ctx)
+            return false;
+        return this.ctx.state === 'running' || (this.ctx.state !== 'closed' && now() < this.graceUntil);
     }
     /** Turns sound on. Call from a click or key handler. */
     async enable() {
         this.enabled.set(true);
         this.persist();
-        await this.resume();
+        await this.resume(true);
     }
     /** Turns sound off (fades out quickly). */
     disable() {
@@ -220,11 +240,13 @@ export class SoundBus {
         panner.connect(this.master);
         return panner;
     }
-    async resume() {
+    async resume(fromGesture) {
         const ctx = this.context;
         if (!ctx || !this.master)
             return;
         if (ctx.state !== 'running') {
+            if (fromGesture)
+                this.graceUntil = now() + RESUME_GRACE_MS;
             try {
                 await ctx.resume();
             }
@@ -247,4 +269,5 @@ export class SoundBus {
         }
     }
 }
+const now = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
 //# sourceMappingURL=bus.js.map

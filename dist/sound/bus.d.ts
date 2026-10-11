@@ -1,7 +1,8 @@
 /**
- * Sound as an optional layer. Off by default, never required for
- * understanding the experience, persisted per visitor, unlocked on a user
- * gesture (as browsers require) and silenced while the tab is hidden.
+ * Sound as an optional layer. Off unless the site turns it on by default
+ * (`defaultOn`), never required for understanding the experience,
+ * persisted per visitor, unlocked on a user gesture (as browsers require)
+ * and silenced while the tab is hidden.
  */
 import { type Signal } from '../core/signal.js';
 export interface SoundOptions {
@@ -9,6 +10,12 @@ export interface SoundOptions {
     storageKey?: string | false;
     /** Master volume `0…1`. Default `0.8`. */
     volume?: number;
+    /**
+     * Sound on for visitors who haven't chosen yet. Browsers still hold audio
+     * back until the visitor's first click, tap or key press; the bus starts
+     * it then. Default `false`.
+     */
+    defaultOn?: boolean;
 }
 export interface PlayOptions {
     volume?: number;
@@ -68,12 +75,16 @@ export declare class SoundBus {
     private readonly key;
     private readonly noiseCache;
     private readonly cleanups;
+    private graceUntil;
     constructor(options?: SoundOptions);
     /** The audio context, created lazily. `null` outside the browser. */
     get context(): AudioContext | null;
     /** Node to connect custom graphs (synths, effects) to. */
     get output(): AudioNode | null;
-    /** True when sound is wanted and the context is running. */
+    /**
+     * True when sound is wanted and the context is running — or is being
+     * resumed by the gesture under way, so that gesture's own sounds play.
+     */
     get audible(): boolean;
     /** Turns sound on. Call from a click or key handler. */
     enable(): Promise<void>;

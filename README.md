@@ -43,7 +43,7 @@ Live showcase: **[Abali](https://veyra-studio.github.io/abali/)** — a Persian,
 | **Image sequences** | Scroll-scrubbed frame sequences on a canvas, loaded coarse-to-fine so they respond before every frame has arrived; resolution follows the quality governor. |
 | **Quality** | Adaptive governor: detects refresh rate, measures real frame times, steps quality and pixel ratio down under load and back up with headroom. |
 | **Assets** | Weighted preloader for images, fonts, fetches and any promise; failures never block the experience. |
-| **Sound** | Optional audio bus: off by default, persisted per visitor, gesture-unlocked, muted when the tab is hidden; noise buffers, synthesized `tone` and `burst` one-shots. |
+| **Sound** | Optional audio bus: off by default (or on, `defaultOn`), persisted per visitor, unlocked on the first click, tap or key and again after the system suspends it, muted when the tab is hidden; noise buffers, synthesized `tone` and `burst` one-shots. |
 | **Debug** | `?debug` overlay: frame-time graph, FPS, quality, scroll, and a scroll map of every scene's range. |
 | **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), DOM-anchored objects, DOM text mirrored into textures with the browser's own line breaks. **Product rendering**: turned shapes from measured silhouettes (`Profile`) with label bands that keep artwork true on cones, studio light baked from code, condensation maps, glossy reflective floors, contact shadows, ray-traced clear solids (ice, glass blocks, crystal: `refractiveSolid`), terrain meshes. |
 | **Utilities** | `whenVisible`, `stage.media()`, `stage.onRefresh()`, `drawElementText` (real HTML text into a canvas), `supportsWebGL2`, `toPersianDigits`, `inlineSign` and the math helpers (`range`, `damp`, `mapRange`, …). |
@@ -59,7 +59,7 @@ npm install @veyra/core@github:veyra-studio/veyra-core#release
 npm install three        # only for @veyra/core/three
 ```
 
-Pin a version with a tag: `github:veyra-studio/veyra-core#v0.6.1`.
+Pin a version with a tag: `github:veyra-studio/veyra-core#v0.7.0`.
 
 ## Develop
 
