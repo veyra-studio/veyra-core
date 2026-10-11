@@ -31,6 +31,9 @@ export function estimateQuality() {
         level -= 0.25;
     return clamp(level);
 }
+/** Where the tiers begin: medium at 0.34, high at 0.67. */
+const TIER_LOW = 0.34;
+const TIER_HIGH = 0.67;
 export class QualityGovernor {
     /** Continuous quality level, `0…1`. */
     level;
@@ -41,6 +44,8 @@ export class QualityGovernor {
     /** Detected display refresh rate (Hz), refined over the first second. */
     refreshRate = 60;
     opts;
+    /** The highest level the governor may climb to (see `steadyTier`). */
+    ceiling;
     samples = [];
     warmup = [];
     badWindows = 0;
@@ -54,9 +59,11 @@ export class QualityGovernor {
             window: options.window ?? 30,
             targetRatio: options.targetRatio ?? 0.86,
             minRefreshRate: options.minRefreshRate ?? 60,
+            steadyTier: options.steadyTier ?? true,
             dprRange: options.dprRange ?? [1, 2],
             adaptive: options.adaptive ?? true,
         };
+        this.ceiling = this.opts.max;
         const initial = options.initial === undefined || options.initial === 'auto' ? estimateQuality() : options.initial;
         this.level = signal(clamp(initial, this.opts.min, this.opts.max));
         this.tier = signal(this.toTier(this.level.value));
@@ -70,9 +77,11 @@ export class QualityGovernor {
     get target() {
         return Math.min(this.refreshRate, 120) * this.opts.targetRatio;
     }
-    /** Forces a level (e.g. from a user setting). */
+    /** Forces a level (e.g. from a user setting); the governor may climb to it again. */
     set(level) {
-        this.level.set(clamp(level, this.opts.min, this.opts.max));
+        const l = clamp(level, this.opts.min, this.opts.max);
+        this.ceiling = Math.max(this.ceiling, l);
+        this.level.set(l);
     }
     /** Feeds one frame's real duration in seconds. Called by the stage every frame. */
     sample(rawDelta) {
@@ -126,13 +135,13 @@ export class QualityGovernor {
             // Far too slow: don't wait for a second window.
             this.goodWindows = 0;
             this.badWindows = 0;
-            this.step(-this.drop(fps));
+            this.slowDown(this.drop(fps));
         }
         else if (fps < this.target) {
             this.goodWindows = 0;
             if (++this.badWindows >= 2) {
                 this.badWindows = 0;
-                this.step(-0.2);
+                this.slowDown(0.2);
             }
         }
         else if (fps > this.target * 1.08) {
@@ -152,8 +161,18 @@ export class QualityGovernor {
     drop(fps) {
         return fps < this.target * 0.4 ? 0.4 : 0.25;
     }
+    /** Steps down after sustained slow frames; with `steadyTier`, the tier left behind stays out of reach. */
+    slowDown(amount) {
+        const from = this.level.value;
+        this.step(-amount);
+        if (!this.opts.steadyTier || this.toTier(this.level.value) === this.toTier(from))
+            return;
+        const floorOfLeft = from >= TIER_HIGH ? TIER_HIGH : TIER_LOW;
+        this.ceiling = Math.min(this.ceiling, floorOfLeft - 0.01);
+    }
     step(amount) {
-        const next = clamp(this.level.value + amount, this.opts.min, this.opts.max);
+        const top = amount > 0 ? Math.max(this.level.value, this.ceiling) : this.opts.max;
+        const next = clamp(Math.min(this.level.value + amount, top), this.opts.min, this.opts.max);
         if (next === this.level.value)
             return;
         this.level.set(next);
@@ -161,7 +180,7 @@ export class QualityGovernor {
         this.cooldown = 30;
     }
     toTier(l) {
-        return l < 0.34 ? 'low' : l < 0.67 ? 'medium' : 'high';
+        return l < TIER_LOW ? 'low' : l < TIER_HIGH ? 'medium' : 'high';
     }
     toDpr(l) {
         const device = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;

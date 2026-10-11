@@ -30,6 +30,13 @@ export interface QualityOptions {
   dprRange?: [number, number]
   /** Disable adaptation (level stays at `initial`). Default `true`. */
   adaptive?: boolean
+  /**
+   * Once slow frames push the level down into a lower tier, it doesn't climb
+   * back into the tier it left for the rest of the session (it still rises
+   * within its tier, and with it the pixel ratio): what a page swaps by tier
+   * swaps once, not back and forth. Default `true`.
+   */
+  steadyTier?: boolean
 }
 
 /**
@@ -52,6 +59,10 @@ export function estimateQuality(): number {
   return clamp(level)
 }
 
+/** Where the tiers begin: medium at 0.34, high at 0.67. */
+const TIER_LOW = 0.34
+const TIER_HIGH = 0.67
+
 export class QualityGovernor {
   /** Continuous quality level, `0…1`. */
   readonly level: Signal<number>
@@ -63,6 +74,8 @@ export class QualityGovernor {
   refreshRate = 60
 
   private readonly opts: Required<Omit<QualityOptions, 'initial'>>
+  /** The highest level the governor may climb to (see `steadyTier`). */
+  private ceiling: number
   private samples: number[] = []
   private warmup: number[] = []
   private badWindows = 0
@@ -77,9 +90,11 @@ export class QualityGovernor {
       window: options.window ?? 30,
       targetRatio: options.targetRatio ?? 0.86,
       minRefreshRate: options.minRefreshRate ?? 60,
+      steadyTier: options.steadyTier ?? true,
       dprRange: options.dprRange ?? [1, 2],
       adaptive: options.adaptive ?? true,
     }
+    this.ceiling = this.opts.max
     const initial = options.initial === undefined || options.initial === 'auto' ? estimateQuality() : options.initial
     this.level = signal(clamp(initial, this.opts.min, this.opts.max))
     this.tier = signal(this.toTier(this.level.value))
@@ -95,9 +110,11 @@ export class QualityGovernor {
     return Math.min(this.refreshRate, 120) * this.opts.targetRatio
   }
 
-  /** Forces a level (e.g. from a user setting). */
+  /** Forces a level (e.g. from a user setting); the governor may climb to it again. */
   set(level: number): void {
-    this.level.set(clamp(level, this.opts.min, this.opts.max))
+    const l = clamp(level, this.opts.min, this.opts.max)
+    this.ceiling = Math.max(this.ceiling, l)
+    this.level.set(l)
   }
 
   /** Feeds one frame's real duration in seconds. Called by the stage every frame. */
@@ -148,12 +165,12 @@ export class QualityGovernor {
       // Far too slow: don't wait for a second window.
       this.goodWindows = 0
       this.badWindows = 0
-      this.step(-this.drop(fps))
+      this.slowDown(this.drop(fps))
     } else if (fps < this.target) {
       this.goodWindows = 0
       if (++this.badWindows >= 2) {
         this.badWindows = 0
-        this.step(-0.2)
+        this.slowDown(0.2)
       }
     } else if (fps > this.target * 1.08) {
       this.badWindows = 0
@@ -173,8 +190,18 @@ export class QualityGovernor {
     return fps < this.target * 0.4 ? 0.4 : 0.25
   }
 
+  /** Steps down after sustained slow frames; with `steadyTier`, the tier left behind stays out of reach. */
+  private slowDown(amount: number): void {
+    const from = this.level.value
+    this.step(-amount)
+    if (!this.opts.steadyTier || this.toTier(this.level.value) === this.toTier(from)) return
+    const floorOfLeft = from >= TIER_HIGH ? TIER_HIGH : TIER_LOW
+    this.ceiling = Math.min(this.ceiling, floorOfLeft - 0.01)
+  }
+
   private step(amount: number): void {
-    const next = clamp(this.level.value + amount, this.opts.min, this.opts.max)
+    const top = amount > 0 ? Math.max(this.level.value, this.ceiling) : this.opts.max
+    const next = clamp(Math.min(this.level.value + amount, top), this.opts.min, this.opts.max)
     if (next === this.level.value) return
     this.level.set(next)
     // Give the new level time to show its effect before judging again.
@@ -182,7 +209,7 @@ export class QualityGovernor {
   }
 
   private toTier(l: number): QualityTier {
-    return l < 0.34 ? 'low' : l < 0.67 ? 'medium' : 'high'
+    return l < TIER_LOW ? 'low' : l < TIER_HIGH ? 'medium' : 'high'
   }
 
   private toDpr(l: number): number {

@@ -21,6 +21,13 @@ export interface QualityOptions {
     dprRange?: [number, number];
     /** Disable adaptation (level stays at `initial`). Default `true`. */
     adaptive?: boolean;
+    /**
+     * Once slow frames push the level down into a lower tier, it doesn't climb
+     * back into the tier it left for the rest of the session (it still rises
+     * within its tier, and with it the pixel ratio): what a page swaps by tier
+     * swaps once, not back and forth. Default `true`.
+     */
+    steadyTier?: boolean;
 }
 /**
  * Estimates a starting level from hardware hints. Phones and tablets
@@ -39,6 +46,8 @@ export declare class QualityGovernor {
     /** Detected display refresh rate (Hz), refined over the first second. */
     refreshRate: number;
     private readonly opts;
+    /** The highest level the governor may climb to (see `steadyTier`). */
+    private ceiling;
     private samples;
     private warmup;
     private badWindows;
@@ -48,12 +57,14 @@ export declare class QualityGovernor {
     constructor(options?: QualityOptions);
     /** Target frames per second given the refresh rate. */
     get target(): number;
-    /** Forces a level (e.g. from a user setting). */
+    /** Forces a level (e.g. from a user setting); the governor may climb to it again. */
     set(level: number): void;
     /** Feeds one frame's real duration in seconds. Called by the stage every frame. */
     sample(rawDelta: number): void;
     /** How far to step down at `fps`, far below target: further the slower it is. */
     private drop;
+    /** Steps down after sustained slow frames; with `steadyTier`, the tier left behind stays out of reach. */
+    private slowDown;
     private step;
     private toTier;
     private toDpr;
