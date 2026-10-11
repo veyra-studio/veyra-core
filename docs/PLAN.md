@@ -52,6 +52,7 @@ Open:
 
 ### Phase 4b — Engine 0.5–0.6: clear solids, weak devices ✅
 - **Engine 0.5**: `refractiveSolid` — clear solids (ice, glass blocks) ray-traced through an SDF in the fragment shader: refraction in and out, internal reflection past the critical angle, Beer–Lambert tint, hooks for what rays see outside, inside, relief and normals (ADR-012).
+- **Engine 0.6.1–0.7**: steady quality tiers (a tier left for slow frames stays out of reach, so what a page swaps by tier doesn't flicker); sound that starts on every user activation and after the system suspends it, and `defaultOn`. 152 unit tests.
 - **Engine 0.6**: the quality governor never takes the refresh rate below 60 Hz (a device at 30 fps used to pass for a 30 Hz screen), steps down after one far-too-slow window, and starts phones in the middle; wheel scrolling goes native at the lowest tier; `warmUp` compiles and draws a scene into one pixel before it shows; the solid's program key is a hash. 146 unit tests.
 - **Abali**: ray-traced ice in the studio and in the glass; every world follows the quality tier as it changes; the low tier drops the floor reflection, the bottle's transmission, the grain and the blurs; the sofreh's glass lost its transmission pass; responsive layouts for phones on their side and very wide screens.
 
@@ -116,4 +117,12 @@ Open:
   - Results (headless Metal, phone viewport): studio 11.7 → 6.7 ms at high, 0.5 ms at low; sofreh 11.9 → 4.1 ms at high, 1.2 ms at low; on the throttled profile the hero's p90 frame 33 → 17 ms.
 - Responsive sweep at 11 sizes (320×568 to 3440×1440, automatic overflow and clipped-text checks, screenshots reviewed): a phone on its side had overlapping lines in «پیس» and the place card running off screen in «آخیش»; the footer slid under the HUD; on a 320 px phone the finale's button sat on the ice; on very wide screens the bottle and the copy drifted apart. All fixed (abali #12).
 - The user merged abali #12 after its checks passed. Studio site: engine 0.6.0 and the Abali image recaptured (#9); Abali's share image recaptured (#13). The studio site itself was already light on the weak profile (60 fps, ≤ 2 ms JS per frame).
+
+### 2026-10-11 — session 2, round 5 (owner review on a phone: cutlery, sofreh, quality flicker, taps, shaking, sound)
+- Sofreh (abali #14): the spoon and fork were flat grey shapes → polished steel (lofted, crowned handles, a spoon bowl with a rolled rim, a cupped fork head) reflecting a room of their own. On phones the glass and the cutlery fell off the frame → the narrow frame spans the spread. Dishes "popped in": lowered from above, a dish seen from overhead only grew → now brought in from the nearest side (food on the plate with the plate). A dark haze with a broken edge: a CSS multiply layer sized to `100svh` ended short when a phone's toolbar hid → the window light is drawn in the render.
+- The bottle flickered between its high- and low-tier glass: the governor stepped down, recovered and climbed back near a boundary → engine 0.6.1 steady tiers (#16); the low tier also keeps the floor's reflection and all six cubes.
+- Taps: the bottle rings and rocks; an ice cube clinks and jiggles, cracks on the third and fourth tap (a milky fracture runs through it) and breaks on the fifth into six chips with real gravity and a puff of ice dust. Picking uses a column and boxes, never the dense meshes; links and buttons keep their clicks.
+- Shaking: one flick filled the gauge → only swings that reverse count; vigorous shaking boils it over in about five seconds, and then the foam fills the screen and carries the reader on to «آخیش».
+- Sound (owner: "on" but silent until toggled; on by default): the engine unlocked audio on `pointerdown`, which a touch's start isn't — fixed in 0.7.0 (#17) for every activation and after system suspension; Abali turns sound on by default (abali #15).
+- All checks pass (engine 152 tests and examples; Abali CPU and GPU, with new checks for taps, boiling over and the sound default); live site checked after each deploy.
 
