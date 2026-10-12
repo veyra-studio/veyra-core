@@ -57,6 +57,8 @@ To work on the engine while seeing changes live in a project, point the project'
 VEYRA_CORE_SRC=../veyra-core npm run dev
 ```
 
+In PowerShell on Windows: `$env:VEYRA_CORE_SRC = '../veyra-core'; npm run dev` (and `Remove-Item Env:VEYRA_CORE_SRC` afterwards).
+
 Both projects alias `@veyra/core` (and `@veyra/core/three`, `@veyra/core/glsl`) to `$VEYRA_CORE_SRC/src/*.ts` when the variable is set, so HMR works across both repositories. Production builds never use the alias.
 
 When the change is ready, merge it in `veyra-core`; the projects follow.

@@ -90,25 +90,108 @@ describe('QualityGovernor', () => {
     expect(mild.level.value).toBeCloseTo(0.7)
   })
 
-  it('keeps the tier steady: once slow frames lower it, the tier left stays out of reach', () => {
-    const q = new QualityGovernor({ initial: 0.8, window: 10 })
+  it('keeps the tier steady: a tier left for slow frames comes back once, after long headroom, then stays out of reach', () => {
+    const q = new QualityGovernor({ initial: 0.8, window: 10, reentryWindows: 20 })
     for (let i = 0; i < 60; i++) q.sample(1 / 60)
     for (let i = 0; i < 10; i++) q.sample(1 / 25)
     expect(q.tier.value).toBe('medium')
     const dropped = q.level.value
-    // Plenty of headroom afterwards: it climbs within medium, never back to high.
-    for (let i = 0; i < 3000; i++) q.sample(1 / 120)
+    // Some headroom: it climbs within medium and waits at the fence.
+    for (let i = 0; i < 400; i++) q.sample(1 / 120)
     expect(q.level.value).toBeGreaterThan(dropped)
+    expect(q.tier.value).toBe('medium')
+    // Steady headroom for long enough: it may return to high, once.
+    for (let i = 0; i < 3000; i++) q.sample(1 / 120)
+    expect(q.tier.value).toBe('high')
+    // Pushed out of high a second time: high stays out of reach for the session.
+    for (let i = 0; i < 200 && q.tier.value === 'high'; i++) q.sample(1 / 25)
+    expect(q.tier.value).toBe('medium')
+    for (let i = 0; i < 6000; i++) q.sample(1 / 120)
     expect(q.tier.value).toBe('medium')
     // An explicit setting may still raise it.
     q.set(0.9)
     expect(q.tier.value).toBe('high')
-    // Without steadyTier it climbs back.
+    // Without steadyTier it climbs back right away.
     const free = new QualityGovernor({ initial: 0.8, window: 10, steadyTier: false })
     for (let i = 0; i < 60; i++) free.sample(1 / 60)
     for (let i = 0; i < 10; i++) free.sample(1 / 25)
-    for (let i = 0; i < 3000; i++) free.sample(1 / 120)
+    for (let i = 0; i < 400; i++) free.sample(1 / 120)
     expect(free.tier.value).toBe('high')
+  })
+
+  it('judges a window by its typical frame: a few hitches are not a slow device', () => {
+    const q = new QualityGovernor({ initial: 0.9 })
+    for (let i = 0; i < 60; i++) q.sample(1 / 60)
+    // A texture upload or a shader compiling: three 150 ms frames in each window of 30.
+    for (let w = 0; w < 8; w++) for (let i = 0; i < 30; i++) q.sample(i % 10 === 4 ? 0.15 : 1 / 60)
+    expect(q.level.value).toBeGreaterThanOrEqual(0.9)
+    // Frames slow throughout still step it down.
+    const before = q.level.value
+    for (let i = 0; i < 150; i++) q.sample(1 / 40)
+    expect(q.level.value).toBeLessThan(before)
+  })
+
+  it('holds judgement during heavy one-off work, stalls and warm-up included', async () => {
+    const q = new QualityGovernor({ initial: 0.9, window: 10 })
+    const release = q.hold()
+    expect(q.held).toBe(true)
+    // Building a world: slow frames and long stalls — none of it counts.
+    for (let i = 0; i < 100; i++) q.sample(1 / 8)
+    for (let i = 0; i < 5; i++) q.sample(0.6)
+    expect(q.level.value).toBe(0.9)
+    release()
+    expect(q.held).toBe(false)
+    // The warm-up runs on the frames after the work, and the device is fine.
+    for (let i = 0; i < 300; i++) q.sample(1 / 60)
+    expect(q.refreshRate).toBe(60)
+    const level = q.level.value
+    expect(level).toBeGreaterThanOrEqual(0.9)
+    // A promise holds until it settles; a number holds for that many seconds of frames.
+    let done!: () => void
+    q.hold(new Promise<void>((r) => (done = r)))
+    for (let i = 0; i < 40; i++) q.sample(1 / 10)
+    expect(q.level.value).toBe(level)
+    done()
+    await Promise.resolve()
+    expect(q.held).toBe(false)
+    q.hold(0.5)
+    for (let i = 0; i < 4; i++) q.sample(1 / 10)
+    expect(q.held).toBe(true)
+    q.sample(1 / 10)
+    expect(q.held).toBe(false)
+    expect(q.level.value).toBe(level)
+    // Afterwards, slow frames are judged again.
+    for (let i = 0; i < 80; i++) q.sample(1 / 10)
+    expect(q.level.value).toBeLessThan(level)
+  })
+
+  it("doesn't trade quality for more than 60 fps on fast screens, unless asked", () => {
+    const q = new QualityGovernor({ initial: 0.9, window: 10 })
+    for (let i = 0; i < 60; i++) q.sample(1 / 120)
+    expect(q.refreshRate).toBe(120)
+    // 80 fps on a 120 Hz screen: smooth enough, keep the quality.
+    for (let i = 0; i < 400; i++) q.sample(1 / 80)
+    expect(q.level.value).toBeGreaterThanOrEqual(0.9)
+    const fast = new QualityGovernor({ initial: 0.9, window: 10, maxTargetFps: 120 })
+    for (let i = 0; i < 60; i++) fast.sample(1 / 120)
+    for (let i = 0; i < 400; i++) fast.sample(1 / 80)
+    expect(fast.level.value).toBeLessThan(0.9)
+  })
+
+  it('follows the device pixel ratio when it changes', () => {
+    const ratio = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio')
+    try {
+      Object.defineProperty(window, 'devicePixelRatio', { value: 1, configurable: true })
+      const q = new QualityGovernor({ initial: 1, adaptive: false, dprRange: [1, 2] })
+      expect(q.dpr.value).toBe(1)
+      // Moved to a denser screen.
+      Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true })
+      q.syncDpr()
+      expect(q.dpr.value).toBe(2)
+    } finally {
+      if (ratio) Object.defineProperty(window, 'devicePixelRatio', ratio)
+      else delete (window as unknown as Record<string, unknown>).devicePixelRatio
+    }
   })
 
   it("doesn't fence a tier over stalls: frames over 250 ms may be a one-off", () => {

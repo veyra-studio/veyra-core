@@ -12,10 +12,11 @@
 import { createReadStream, existsSync, mkdirSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, normalize } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
-const ROOT = new URL('../examples-dist/', import.meta.url).pathname
-const OUT = new URL('../verify-output/', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('../examples-dist/', import.meta.url))
+const OUT = fileURLToPath(new URL('../verify-output/', import.meta.url))
 if (!existsSync(ROOT)) {
   console.error('examples-dist/ is missing — run "npm run examples:build" first.')
   process.exit(1)
@@ -322,7 +323,50 @@ try {
     const detail = await page.evaluate(() => window.__ex.status.terrainDetail())
     check(detail.detailed > detail.flat * 1.3, `noise texture adds rock detail to the terrain (neighbor contrast ${detail.flat.toFixed(2)} → ${detail.detailed.toFixed(2)})`)
     await page.screenshot({ path: `${OUT}studio-terrain.png` })
+    // Last: it pauses the page.
+    const restore = await page.evaluate(() => window.__ex.status.contextRestore())
+    check(restore.rebuilt.wasLost && restore.rebuilt.back, 'layer.lost follows the context: lost, then back')
+    check(
+      restore.rebuilt.light > restore.before * 0.8 && restore.unrestored.light < restore.before * 0.5,
+      `after a lost context, onRestore brings the environment light back (${restore.before} → ${restore.rebuilt.light}; without it ${restore.unrestored.light})`,
+    )
   })
+
+  await visit(
+    browser,
+    'Product · phone address bar',
+    '/studio/',
+    async (page) => {
+      await page.waitForFunction(() => window.__ex.status.warmed === true, null, { timeout: 20000 })
+      const size = () =>
+        page.evaluate(() => ({
+          buffer: [window.__ex.layer.canvas.width, window.__ex.layer.canvas.height],
+          height: window.__ex.layer.height,
+          distance: window.__ex.layer.camera.position.z,
+          resizes: window.__ex.status.resizes ?? 0,
+        }))
+      // Software rendering is slow: wait for frames to pass rather than for time.
+      const frames = async (n) => {
+        const f0 = await page.evaluate(() => window.__ex.stage.ticker.current.frame)
+        await page.waitForFunction((f) => window.__ex.stage.ticker.current.frame >= f, f0 + n, { timeout: 60000 })
+      }
+      const before = await size()
+      // The address bar slides in: the window loses 80 px of height, nothing else.
+      await page.setViewportSize({ width: 390, height: 764 })
+      await frames(3)
+      const bar = await size()
+      check(
+        bar.resizes === before.resizes && bar.buffer.join() === before.buffer.join() && bar.distance === before.distance,
+        `a toolbar sliding in leaves the canvas alone (buffer ${before.buffer.join('×')}, camera ${before.distance.toFixed(0)}, ${bar.resizes - before.resizes} resizes)`,
+      )
+      // A rotation: width and height change together — one resize.
+      await page.setViewportSize({ width: 844, height: 390 })
+      await frames(3)
+      const turned = await size()
+      check(turned.resizes === before.resizes + 1 && turned.buffer[0] > before.buffer[0], `a rotation resizes the canvas once (${turned.resizes - before.resizes}, ${turned.buffer.join('×')})`)
+    },
+    { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+  )
 
   await visit(browser, 'Scroll scenes (regression)', '/scroll-scenes/', async (page) => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 3))

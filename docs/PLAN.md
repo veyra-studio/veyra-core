@@ -1,12 +1,13 @@
 # Veyra — plan & progress
 
-Master tracker for the three Veyra repositories. Keep it current: it is how work continues across sessions.
+Master tracker for the Veyra repositories. Keep it current: it is how work continues across sessions.
 
 | Repository | Role | Deploys to |
 | --- | --- | --- |
 | [veyra-core](https://github.com/veyra-studio/veyra-core) | The engine (source of truth) | `release` branch, built by CI (later npm) |
 | [abali](https://github.com/veyra-studio/abali) | First showcase: Persian RTL campaign concept for Doogh Abali | https://veyra-studio.github.io/abali/ |
-| [veyra-studio.github.io](https://github.com/veyra-studio/veyra-studio.github.io) | Bilingual (EN/FA) studio + engine website | https://veyra-studio.github.io/ |
+| [veyra-studio.github.io](https://github.com/veyra-studio/veyra-studio.github.io) | Multilingual (EN/FA/AR/TR) studio + engine website; takes commissions (itsmetti@proton.me) | https://veyra-studio.github.io/ |
+| [durex](https://github.com/veyra-studio/durex) | Second showcase (planned): English campaign concept for Durex, «Zero gravity.» | https://veyra-studio.github.io/durex/ (once built) |
 
 ## Key decisions (details in [architecture.md](architecture.md))
 
@@ -24,6 +25,8 @@ Open:
 
 1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 2. *(Optional)* A native Persian copywriter's read of Abali's copy («خنکی صدا دارد.» and the chapters), and a check on real mid-range phones.
+3. Review the 2026-10-13 branches (`claude/engine-0.8`, `claude/every-device`, `claude/contact`, `claude/plan`) and merge the engine first: Abali needs 0.8 on `release` before its branch builds in CI.
+4. Durex: photographs of the packaging to sample from (reference only), and a decision on the headline (see `durex/README.md`).
 
 ## Status
 
@@ -56,10 +59,21 @@ Open:
 - **Engine 0.6**: the quality governor never takes the refresh rate below 60 Hz (a device at 30 fps used to pass for a 30 Hz screen), steps down after one far-too-slow window, and starts phones in the middle; wheel scrolling goes native at the lowest tier; `warmUp` compiles and draws a scene into one pixel before it shows; the solid's program key is a hash. 146 unit tests.
 - **Abali**: ray-traced ice in the studio and in the glass; every world follows the quality tier as it changes; the low tier drops the floor reflection, the bottle's transmission, the grain and the blurs; the sofreh's glass lost its transmission pass; responsive layouts for phones on their side and very wide screens.
 
+### Phase 4c — Engine 0.8: every device ✅ (2026-10-13, awaiting merge)
+- **Quality**: windows judged by their typical frame (hitches don't count), `quality.hold()` during one-off work, a fenced tier may be re-entered once after ~10 s of headroom, the target stops at 60 fps (`maxTargetFps`), the pixel ratio follows the screen (`syncDpr`). Seen once on the owner's desktop (RX 580, in the desktop app's browser pane): Abali settled at medium with high fenced off. Headless runs on the same GPU don't reproduce it (both engines stay high there, frames ~150 fps unsynced); unit tests cover the mechanism — hitches counted as load, then a permanent fence.
+- **Phones**: `threeLayer({ stableHeight })` / `viewport.stableHeight` — the canvas holds still while the address bar slides in and out; one resize per layout change; `layer.lost` and `layer.onRestore` rebuild what lived only on the GPU after a lost context (example 07 shows the environment light at 268 before, 268 after with `onRestore`, 0 without); sound the visitor turns on plays on an iPhone set to silent (Audio Session `'playback'`).
+- **Per frame**: no `window.scrollX` reads in `RectCache.view()`, no layout reads on wheel events.
+- **Windows**: `build`, `release:pack`, `verify:examples` and the sites' verify scripts run in PowerShell.
+- **Abali**: holds the governor while loading and building worlds; `stableHeight`; restores its three environments after a lost context (drawn fallback after 3 s without one); the sofreh's bottle built small (droplets and label at its size); no strings built per frame; Noto Nastaliq subset to «دوغ آبعلی» (22 KB instead of 234, pixel-identical); a commission line in the footer.
+- **Studio site**: a «Commissions» section with the address (mailto with a subject per language, copy button), a nav link and the footer, in all four languages; the Abali facts brought up to date.
+
 ### Phase 5 — Next
 - **Abali**: profile on real mid-range Android/iOS phones (the emulated weak-phone profile is in `lab/weak.mjs`, not a substitute); a native copywriter's review; perhaps recorded sounds as an audio sprite beside the synthesized ones; a short share card at the end.
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
 - **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
+
+### Phase 6 — Durex, «Zero gravity.» (planned)
+English, witty and luxurious, everything floating: foil packets in zero gravity, tear one open, unroll it, blow it up — 18 litres, the standard; about 40, what Durex says a typical one holds — and let it go: it flies around the page like an untied balloon, bouncing off the real headlines. Then the water test, and «Play safe». Concept, facts with sources, chapters and the build plan: [durex/README.md](https://github.com/veyra-studio/durex/blob/main/README.md). Engine work first: light rigid-body physics with DOM colliders, `SoundBus.voice()`, a press-and-hold input.
 
 ## Session log
 
@@ -126,3 +140,11 @@ Open:
 - Sound (owner: "on" but silent until toggled; on by default): the engine unlocked audio on `pointerdown`, which a touch's start isn't — fixed in 0.7.0 (#17) for every activation and after system suspension; Abali turns sound on by default (abali #15).
 - All checks pass (engine 152 tests and examples; Abali CPU and GPU, with new checks for taps, boiling over and the sound default); live site checked after each deploy.
 
+
+### 2026-10-13 — session 3 (owner brief: what's wrong and the plan; every device for the engine and Abali; a commission address on the studio site; plan Durex)
+- Review: four repositories cloned to a Windows desktop (PowerShell). Found: the governor counting load hitches as slowness and then fencing the tier for good; a 103 fps target on 120/144 Hz screens; the three.js canvas resized (stretched, reallocated, camera jumping) whenever a phone's address bar moved, and twice per rotation; `window.scrollX` read in `RectCache.view()` every frame and a layout read on every wheel event; environments black after a lost WebGL context; silent iPhones muting sound the visitor turned on; `quality.dpr` blind to a new screen; `build`, `release:pack` and the verify scripts broken on Windows (`rm -rf`, spawning `npm`, URL pathnames as paths); Abali building a full-size second bottle for the sofreh and downloading 234 KB of Nastaliq for two words; no way to order a project on the studio site, and the studio site overflowing 320 px phones by 50 px (a 12-column grid's fixed gaps).
+- Engine 0.8.0 (`claude/engine-0.8`): see Phase 4c and the changelog. 159 unit tests; every example check passes in headless Chromium, with new ones for the phone address bar (no resize), a rotation (one resize) and a lost context (environment light 268 → 268 with `onRestore`, 0 without). Debugging note: Chrome allows `restoreContext()` only after the lost event has finished dispatching — a check that restores from the event's promise continuation never gets its context back.
+- Abali (`claude/every-device`, built against the packed 0.8.0): all 37 checks pass on SwiftShader, including the new ones (commission address, address bar, lost context with the drawn fallback). On the owner's GPU (D3D11, headless), engine 0.7 and 0.8 both stay high; 0.8 holds its judgement until the later worlds are built, then climbs to 1.0. The Nastaliq subset renders pixel-identically (canvas comparison at 400 and 700). Its lockfile still pins 0.7: run `npm run engine:update` once 0.8 is on `release`.
+- Studio site (`claude/contact`): the «Commissions» section, nav link and footer address in four languages; the 320 px overflow fixed; 186 checks pass.
+- Durex (`claude/plan`): concept and build plan written (owner's choices: English, witty and luxurious, all four extra scenes besides «Pump» and «Let go»). Nothing built yet.
+- Nothing committed or pushed: the owner reviews the branches first (see Owner actions).

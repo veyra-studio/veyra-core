@@ -12,10 +12,12 @@
  * entry point need it.
  */
 import * as THREE from 'three'
+import { signal, type ReadonlySignal } from '../core/signal.js'
 import { Phase, type Frame } from '../core/ticker.js'
 import type { Stage, StagePlugin } from '../stage.js'
 import { drawElementText } from '../text/draw.js'
 import { isSoftwareRenderer } from '../env/capabilities.js'
+import { warmUp } from './warm.js'
 
 export interface ThreeLayerOptions {
   /** Use an existing canvas. Otherwise a fixed, full-viewport canvas is created. */
@@ -47,6 +49,17 @@ export interface ThreeLayerOptions {
    * Default `false` (three.js behavior); also settable on the layer.
    */
   seeThroughGlass?: boolean
+  /**
+   * Size the canvas to the large viewport (`100lvh`, see
+   * `viewport.stableHeight`) instead of the window. On phones the address
+   * bar then slides in and out without the canvas resizing — no stretched
+   * frames, no new drawing buffer, no camera jump; while the bar shows, the
+   * canvas reaches under it. Anchors and the pixel camera use the same
+   * height (`layer.height`): place things with it rather than
+   * `innerHeight`. A canvas you pass in needs `height: 100lvh` in its CSS.
+   * Default `false`.
+   */
+  stableHeight?: boolean
   /** Called every frame before rendering. */
   onFrame?: (layer: ThreeLayer, frame: Readonly<Frame>) => void
 }
@@ -108,19 +121,32 @@ export class ThreeLayer {
   readonly software: boolean
   /** See `ThreeLayerOptions.seeThroughGlass`. */
   seeThroughGlass: boolean
-  /** Viewport size in CSS pixels. */
+  /** See `ThreeLayerOptions.stableHeight`. */
+  readonly stableHeight: boolean
+  /** Canvas size in CSS pixels: the viewport (with `stableHeight`, the large viewport's height). */
   width = 1
   height = 1
   autoRender: boolean
+  /**
+   * True while the WebGL context is lost — the system took the GPU back
+   * (often on phones, in the background or short of memory). Nothing draws
+   * until it returns; see `onRestore`.
+   */
+  readonly lost: ReadonlySignal<boolean>
+  private readonly lostState = signal(false)
+  private readonly restorers = new Set<() => void>()
   private readonly anchors = new Set<DomAnchor>()
   private readonly ownsCanvas: boolean
   private readonly cleanups: Array<() => void> = []
   private readonly maxDpr: number
+  private sizeDirty = false
 
   constructor(
     readonly stage: Stage,
     private readonly options: ThreeLayerOptions = {},
   ) {
+    this.lost = this.lostState
+    this.stableHeight = options.stableHeight ?? false
     this.ownsCanvas = !options.canvas
     this.canvas = options.canvas ?? document.createElement('canvas')
     if (this.ownsCanvas) {
@@ -134,6 +160,13 @@ export class ThreeLayer {
         pointerEvents: 'none',
         zIndex: String(options.zIndex ?? 0),
       })
+      if (this.stableHeight) {
+        // Pinned to the top, as tall as the page with the toolbars hidden
+        // (`lvh` where supported; mobile browsers size `vh` the same way).
+        this.canvas.style.bottom = 'auto'
+        this.canvas.style.height = '100vh'
+        this.canvas.style.height = '100lvh'
+      }
       ;(options.container ?? document.body).append(this.canvas)
     }
     this.renderer = new THREE.WebGLRenderer({
@@ -159,16 +192,31 @@ export class ThreeLayer {
     this.camera = new THREE.PerspectiveCamera(options.fov ?? 35, 1, 1, 10000)
 
     this.resize()
-    this.cleanups.push(stage.viewport.width.subscribe(() => this.resize()))
-    this.cleanups.push(stage.viewport.height.subscribe(() => this.resize()))
+    // A rotation changes width and height at once: resize once, at the start
+    // of the next frame, whatever changed.
+    const dirty = () => (this.sizeDirty = true)
+    const viewport = stage.viewport
+    if (this.stableHeight) this.cleanups.push(viewport.layoutSize.subscribe(dirty), viewport.stableHeight.subscribe(dirty))
+    else this.cleanups.push(viewport.width.subscribe(dirty), viewport.height.subscribe(dirty))
+    this.cleanups.push(stage.onFrame(() => this.sizeDirty && this.resize(), Phase.measure + 1))
     if (stage.quality) this.cleanups.push(stage.quality.dpr.subscribe(() => this.applyPixelRatio()))
 
+    // three.js restores its own state; what lived only on the GPU (what was
+    // rendered into targets: environment maps, baked passes) is the page's to
+    // rebuild, through `onRestore`.
     const onLost = (e: Event) => {
       e.preventDefault()
-      this.autoRender = false
+      this.lostState.set(true)
     }
     const onRestored = () => {
-      this.autoRender = options.autoRender ?? true
+      this.lostState.set(false)
+      for (const fn of [...this.restorers]) {
+        try {
+          fn()
+        } catch (error) {
+          console.error('[veyra] A context-restore callback threw.', error)
+        }
+      }
     }
     this.canvas.addEventListener('webglcontextlost', onLost)
     this.canvas.addEventListener('webglcontextrestored', onRestored)
@@ -181,9 +229,35 @@ export class ThreeLayer {
       stage.onFrame((frame) => {
         for (const a of this.anchors) a.update(this.width, this.height)
         options.onFrame?.(this, frame)
-        if (this.autoRender) this.render()
+        if (this.autoRender && !this.lostState.value) this.render()
       }, Phase.render),
     )
+  }
+
+  /**
+   * Runs `fn` when a lost WebGL context comes back, after three.js has
+   * restored itself: rebuild what existed only on the GPU — an environment
+   * from `studioEnvironment`, anything rendered once into a target. Meshes,
+   * materials and textures with their data upload again by themselves.
+   * Returns a remover.
+   */
+  onRestore(fn: () => void): () => void {
+    this.restorers.add(fn)
+    return () => this.restorers.delete(fn)
+  }
+
+  /**
+   * `warmUp` on this layer's renderer, with the stage's quality governor on
+   * hold meanwhile: its frames are slow on purpose and say nothing about
+   * the device. Defaults to the layer's own scene and camera.
+   */
+  async warmUp(scene: THREE.Object3D = this.scene, camera: THREE.Camera = this.camera): Promise<void> {
+    const release = this.stage.quality?.hold()
+    try {
+      await warmUp(this.renderer, scene, camera)
+    } finally {
+      release?.()
+    }
   }
 
   /** Distance from camera to the `z = 0` plane, where 1 unit = 1 CSS px. */
@@ -252,8 +326,9 @@ export class ThreeLayer {
   }
 
   resize(): void {
+    this.sizeDirty = false
     this.width = Math.max(1, this.stage.viewport.w)
-    this.height = Math.max(1, this.stage.viewport.h)
+    this.height = Math.max(1, this.stableHeight ? this.stage.viewport.stableHeight.value : this.stage.viewport.h)
     this.applyPixelRatio()
     this.renderer.setSize(this.width, this.height, false)
     const fov = THREE.MathUtils.degToRad(this.camera.fov)
@@ -268,6 +343,7 @@ export class ThreeLayer {
   destroy(): void {
     for (const c of this.cleanups) c()
     for (const a of [...this.anchors]) a.destroy()
+    this.restorers.clear()
     this.renderer.dispose()
     if (this.ownsCanvas) this.canvas.remove()
   }

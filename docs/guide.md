@@ -52,6 +52,8 @@ stage.destroy()
 
 Layout refreshes happen automatically on width changes, font loading, `load`, and document height changes; `stage.onRefresh(fn)` runs your own re-measuring at the same moments.
 
+`stage.viewport` holds the window size as signals (`width`, `height`, `dpr`, `touch`) and `layoutSize`, which ignores a phone's address bar sliding in and out (height-only changes under `heightThreshold`, 160 px). `viewport.stableHeight` is the large viewport's height (`100lvh`, the page with the toolbars hidden): steady while the bar moves, measured again when the layout size changes — what full-screen canvases should be sized to on phones (see `stableHeight` on the three.js layer).
+
 Capabilities that need the stage are plugins, so bundles only carry what a page uses:
 
 ```ts
@@ -455,9 +457,21 @@ stage.quality!.dpr     // recommended pixel ratio
 stage.quality!.tier.subscribe((t) => (bloom.enabled = t === 'high'), { immediate: true })
 ```
 
-The governor watches real frame times in windows of 30 frames: two slow windows step the level down, one far too slow window (under 60% of the target) steps it down at once — further the slower it is — and six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. The refresh rate is measured over the first second but never taken below `minRefreshRate` (60 Hz): a device that only manages 30 fps is struggling, not showing a 30 Hz screen.
+The governor watches real frame times in windows of 30 frames, each judged by its typical frame (the mean without its slowest tenth: a few hitches — a texture upload, a shader compiling, a GC pause — don't make a window slow). Two slow windows step the level down, one far too slow window (under 60% of the target) steps it down at once — further the slower it is — and six fast ones step it back up. A single long frame (a tab switch, a GC pause) is ignored; three long frames in a row (over 250 ms each — a software renderer, a far too heavy scene) drop the level to its minimum at once. The refresh rate is measured over the first second but never taken below `minRefreshRate` (60 Hz): a device that only manages 30 fps is struggling, not showing a 30 Hz screen. The target is 86% of the refresh rate, up to `maxTargetFps` (60): a 120 Hz screen runs as fast as the device draws, but quality isn't lowered to get past 60 fps.
 
-Tiers hold steady (`steadyTier`, default `true`): once sustained slow frames push the level into a lower tier, it doesn't climb back into the tier it left for the rest of the session — it still rises within its tier, and with it the pixel ratio — so what a page swaps by tier (materials, effects) swaps once instead of flickering back and forth. Stalls and the warm-up don't fence a tier off; `quality.set()` lifts the limit.
+Hold the governor while heavy one-off work runs, so its slow frames don't count against the device:
+
+```ts
+stage.quality?.hold(buildLaterScenes())    // released when the promise settles
+const release = stage.quality?.hold()      // or by hand
+stage.quality?.hold(0.5)                   // or for half a second of frames
+```
+
+Stalls and the warm-up wait too, and the first frames after a hold settle before judging resumes. `gl.warmUp()` on the three.js layer holds it for you.
+
+Tiers hold steady (`steadyTier`, default `true`): once sustained slow frames push the level into a lower tier, the tier it left is fenced off — the level still rises within its tier, and with it the pixel ratio — so what a page swaps by tier (materials, effects) doesn't flicker back and forth. A fenced tier may be re-entered once, after `reentryWindows` (20, about ten seconds) fast windows in a row: a device that only stumbled while a page was loading gets its quality back. Leaving it a second time fences it for the session. Stalls and the warm-up don't fence a tier off; `quality.set()` lifts the fences up to the level it sets.
+
+The recommended pixel ratio follows the screen: the stage calls `quality.syncDpr()` on resize, so a window moved to a denser display (or a zoom) changes `dpr`.
 
 The starting level (`initial: 'auto'`) comes from hardware hints: desktops start high (lower with four cores or few gigabytes of memory), phones and tablets (a coarse pointer) start in the middle and climb if they can. Tie expensive features to `tier` — and follow it at runtime, not only when building — so the low tier stays light.
 
@@ -480,6 +494,8 @@ stage.sound!.tone({ frequency: 3100, type: 'triangle', gain: 0.04, decay: 0.2, p
 
 Sound is off until the visitor turns it on — or on from the start with `createStage({ sound: { defaultOn: true } })`; either way the visitor's choice is remembered (`storageKey`). Browsers hold audio back until a user activation: a key, a click, a mouse press or the end of a touch (not a touch's start, not a scroll). The bus listens for each of these, in the capture phase, and starts or resumes the context then — also after the system suspended or interrupted it (another app, a phone call) — so "on" never stays silent; the sounds of that very gesture play too.
 
+An iPhone switched to silent mutes Web Audio. When the visitor turns sound on themselves (`enable()`, `toggle()`, or a choice stored from an earlier visit), the bus asks Safari's Audio Session API for `'playback'` — sound they asked for plays like a video they start, even on silent (and, like a video, it may pause music playing in another app). Sound that is merely on by default (`defaultOn`) keeps following the switch; `disable()` hands the session back.
+
 ## Reduced motion
 
 `stage.reducedMotion` follows `prefers-reduced-motion` and is writable for an in-page toggle. It sets `data-reduced-motion` on `<html>`, disables scroll smoothing, and makes `stage.animate` jump to end states. Design reduced variants per scene:
@@ -501,8 +517,20 @@ const title = gl.mirrorText(document.querySelector('h1')!)      // real HTML →
 ```
 
 - At `z = 0`, 1 world unit = 1 CSS pixel; origin at the viewport center.
-- Pixel ratio follows the quality governor (capped by `maxDpr`).
-- `warmUp(renderer, scene, camera)` prepares a scene before it is first shown: its programs compile in parallel where the browser allows, then it is drawn once into a single pixel so textures upload and shadow maps and transmission targets are built. Call it for worlds built ahead of time (a later chapter's scene) so reaching them doesn't stall a frame.
+- Pixel ratio follows the quality governor (capped by `maxDpr`). The canvas resizes at most once per frame, at the start of the frame after a resize (a rotation changes width and height at once).
+- **Phones: `stableHeight: true`.** The canvas takes the large viewport's height (`100lvh` — the page with the toolbars hidden; `stage.viewport.stableHeight`), measured again only when the layout size changes. The address bar then slides in and out without resizing it: no stretched frames, no new drawing buffer, no camera jump; while the bar shows, the canvas reaches under it. Anchors and the pixel camera use the same height — place things with `gl.width` / `gl.height` rather than `innerHeight`. A canvas you pass in needs `height: 100lvh` in its CSS. Off by default (0.7 layouts measured against the window).
+- `warmUp(renderer, scene, camera)` prepares a scene before it is first shown: its programs compile in parallel where the browser allows, then it is drawn once into a single pixel so textures upload and shadow maps and transmission targets are built. Call it for worlds built ahead of time (a later chapter's scene) so reaching them doesn't stall a frame. `gl.warmUp(scene?, camera?)` does the same on the layer's renderer and holds the quality governor meanwhile.
+- **Lost contexts.** Phones take the GPU back from pages in the background or short of memory. `gl.lost` (a signal) says so; nothing draws until the context returns, and three.js then restores its own state — meshes, materials and textures with their data upload again. What existed only on the GPU is yours to rebuild:
+
+  ```ts
+  scene.environment = studioEnvironment(renderer)
+  gl.onRestore(() => {
+    const old = scene.environment
+    scene.environment = studioEnvironment(renderer)   // rendered into a target: gone with the context
+    old?.dispose()
+  })
+  gl.lost.subscribe((lost) => document.documentElement.classList.toggle('gl-lost', lost))
+  ```
 - Over a transparent canvas, `seeThroughGlass: true` lets glass, ice and water show the page through themselves (three.js otherwise fills what they refract of the empty background with half-transparent white, which turns clear glass milky over a dark page); opaque objects behind still refract. Also settable as `gl.seeThroughGlass`.
 - On a software renderer (no GPU: SwiftShader, llvmpipe…) the layer sets the stage's quality to its lowest level from the start (`gl.software` says so; `softwareQuality` picks another level, `false` opts out). `isSoftwareRenderer(gl)` is exported for your own checks.
 - Set `autoRender: false` and render yourself in `onFrame` for custom passes.

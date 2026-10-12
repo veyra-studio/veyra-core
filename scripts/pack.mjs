@@ -4,8 +4,9 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, renameSync, existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const src = readFileSync(join(root, 'src/index.ts'), 'utf8')
 const match = /VERSION = '([^']+)'/.exec(src)
@@ -16,7 +17,9 @@ if (!match || match[1] !== pkg.version) {
 
 const outDir = join(root, 'release')
 mkdirSync(outDir, { recursive: true })
-const out = execFileSync('npm', ['pack', '--json', '--pack-destination', outDir], { cwd: root, encoding: 'utf8' })
+// npm as this script was started (npm_execpath): spawning `npm` itself fails on Windows.
+const npm = (args, options) => (process.env.npm_execpath ? execFileSync(process.execPath, [process.env.npm_execpath, ...args], options) : execFileSync('npm', args, { ...options, shell: process.platform === 'win32' }))
+const out = npm(['pack', '--json', '--pack-destination', outDir], { cwd: root, encoding: 'utf8' })
 const [info] = JSON.parse(out)
 const produced = join(outDir, info.filename)
 const target = join(outDir, `veyra-core-${pkg.version}.tgz`)

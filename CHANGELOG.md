@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.0 — 2026-10-13
+
+Every device: strong ones keep their quality, phones keep their canvas, silent iPhones play sound that was asked for, and the toolchain runs on Windows. No API removed; the quality governor's defaults change.
+
+- **Quality governor — hitches aren't slowness**: a window is judged by its typical frame (the mean without its slowest tenth), so a few one-off long frames — a texture upload, a shader compiling, a GC pause — no longer lower the quality of a device that is fine. Two such windows used to cost a tier, and the tier fence then kept it for the session (seen once on a desktop GPU while Abali built its later scenes).
+- **`quality.hold(work?)`**: no judging while heavy one-off work runs (preloading, building a scene, `warmUp`): pass a promise, a duration in seconds of frames, or call the returned function. Stalls and the warm-up wait too.
+- **Steady tiers that can recover once**: a tier left for slow frames may be re-entered once, after `reentryWindows` (default 20, about 10 s) fast windows in a row; leaving it a second time keeps it out for the session. Before, the first drop locked it for good.
+- **`maxTargetFps`** (default `60`): the governor no longer trades quality for frame rates above 60 fps on 120/144 Hz screens (the target used to be 86% of up to 120 Hz).
+- **Pixel ratio follows the screen**: `quality.syncDpr()`, called by the stage on resize, re-reads `devicePixelRatio` (a window moved to another screen, a zoom).
+- **No layout reads in per-frame paths**: `RectCache.view()` no longer reads `window.scrollX` (it forced a layout after the frame's style writes); the offset is read in the measure phase. The scroll controller no longer measures the page on every wheel event; a push past the end is checked against a fresh measurement on the next frame.
+- **Steady canvas on phones** (`threeLayer({ stableHeight: true })`, `viewport.stableHeight`): the canvas takes the large viewport's height (`100lvh`), so the address bar sliding in and out no longer resizes it (stretched frames, a new drawing buffer, a camera jump). Opt-in: place things with `layer.height`.
+- **One resize at a time**: the three.js layer resizes once per frame at most — a rotation used to resize it twice.
+- **Lost WebGL contexts** (`layer.lost`, `layer.onRestore(fn)`): rebuild what lived only on the GPU (an environment from `studioEnvironment`) when the context comes back; the layer pauses rendering while it is lost without overwriting `autoRender`.
+- **`layer.warmUp(scene?, camera?)`**: `warmUp` on the layer's renderer, with the quality governor on hold.
+- **Sound on silent iPhones**: when the visitor turns sound on (`enable()`, or a choice stored from an earlier visit), the bus asks Safari's Audio Session API for `'playback'`, so it plays with the ring/silent switch on silent; sound that is only on by default still follows the switch. `disable()` hands it back.
+- **Fix**: destroying a sound bus while its context resumed threw an unhandled rejection.
+- **Windows**: `npm run build`, `release:pack` and `verify:examples` work in PowerShell and cmd (no `rm -rf`, npm spawned through `npm_execpath`, file paths through `fileURLToPath`).
+- Example 07 uses `stableHeight`, `onRestore` and `layer.warmUp`; new browser checks: a toolbar sliding in leaves the canvas alone, a rotation resizes it once, and the environment light comes back after a lost context only with `onRestore`.
+
 ## 0.7.0 — 2026-10-11
 
 - **Fix — sound "on" but silent**: the bus started audio on `pointerdown` and `keydown`, but a touch's `pointerdown` isn't a user activation, so on phones a stored "on" stayed silent until the visitor toggled sound off and on; a context the system suspended or interrupted (iOS, another app, a call) stayed silent too. It now listens for every activation (`keydown`, `mousedown`, `pointerup`, `touchend`, `click`), in the capture phase, and resumes the context from any state; while a gesture's resume is under way (up to 250 ms) the bus counts as audible, so the sounds of that very gesture play.
