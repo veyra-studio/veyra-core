@@ -84,6 +84,8 @@ Splitting text into per-letter boxes breaks Arabic-script joining because each i
 
 The governor detects the refresh rate during warm-up, then evaluates frame-time windows: two bad windows step quality down; six good windows step it up (slowly, to avoid oscillation); a cooldown follows each change. Renderers bind pixel ratio and effect levels to its signals.
 
+What counts as slow matters as much as the steps (0.8): a window is judged by its typical frame (the mean without its slowest tenth), pages hold the governor during one-off work (`hold()` — building a scene, compiling, uploading), and the target stops at 60 fps on fast screens. Each of these closes a way a capable device could lose its quality to hitches that say nothing about it: two windows with a few long frames each (a page building its later scenes) cost a tier, and the tier fence then kept it there for the session. Fences stay (a tier swap must not flicker) but may open once after sustained headroom.
+
 ### ADR-007 — Explicit signals, no dependency tracking
 
 Reactive state (`viewport.width`, `quality.dpr`, `reducedMotion`) uses tiny explicit signals: subscribe to what you need, computed values list their inputs. No proxies, no hidden graphs, nothing to debug.

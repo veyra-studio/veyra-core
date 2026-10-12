@@ -21,9 +21,10 @@
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = resolve(dirname(new URL(import.meta.url).pathname), '..')
+const root = fileURLToPath(new URL('..', import.meta.url))
 const args = process.argv.slice(2)
 const option = (name, fallback) => {
   const i = args.indexOf(name)
@@ -35,6 +36,8 @@ const branch = option('--branch', 'release')
 const identity = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com']
 
 const git = (cwd, ...cmd) => execFileSync('git', cmd, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+// npm as this script was started (npm_execpath): spawning `npm` itself fails on Windows.
+const npm = (args, options) => (process.env.npm_execpath ? execFileSync(process.execPath, [process.env.npm_execpath, ...args], options) : execFileSync('npm', args, { ...options, shell: process.platform === 'win32' }))
 const tryGit = (cwd, ...cmd) => {
   try {
     return git(cwd, ...cmd)
@@ -63,7 +66,7 @@ let createdTempBranch = false
 
 try {
   // 1. Pack.
-  const packed = JSON.parse(execFileSync('npm', ['pack', '--json', '--pack-destination', packDir], { cwd: root, encoding: 'utf8' }))
+  const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', packDir], { cwd: root, encoding: 'utf8' }))
   const tarball = join(packDir, packed[0].filename)
 
   // 2. Worktree on the current release branch, or a fresh orphan.

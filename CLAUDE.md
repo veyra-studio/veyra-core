@@ -1,6 +1,6 @@
 # Veyra Core — working notes for Claude Code
 
-The engine repository of the Veyra project. Read `docs/PLAN.md` first: it is the master plan and progress tracker for all three repositories (`veyra-core`, `veyra-studio.github.io`, `abali`).
+The engine repository of the Veyra project. Read `docs/PLAN.md` first: it is the master plan and progress tracker for all the repositories (`veyra-core`, `veyra-studio.github.io`, `abali`, and `durex`, planned).
 
 ## Commands
 
@@ -33,6 +33,8 @@ Projects install the engine from the `release` branch, which CI publishes from e
 - Showcase-specific code never goes here (see `docs/integration.md`).
 - Capabilities that need the stage are plugins (`StagePlugin`, used via `stage.use(...)`): clean up through `onDestroy`, re-measure through `stage.onRefresh`, honor `stage.reducedMotion`, and keep horizontal behavior reading-direction aware.
 - Unit tests can't see layout (jsdom): mock geometry in tests, and prove behavior in a real browser with an example plus a check in `scripts/verify-examples.mjs`.
+- Every device: per-frame paths read nothing from layout (not even `window.scrollX`); one-off heavy work runs under `quality.hold()`; full-screen canvases on phones use `stableHeight`; anything rendered once into a target needs an `onRestore` rebuild.
+- Scripts run on Windows too (the owner works in PowerShell): no `rm -rf` or other shell-only commands in npm scripts, spawn npm through `npm_execpath`, turn file URLs into paths with `fileURLToPath`.
 
 ## Verifying in a browser
 
