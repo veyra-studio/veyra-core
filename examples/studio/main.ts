@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { bakeOcclusion, bakeSunlight, createStage, erodedNoise, heightfield, Phase, ridgedNoise } from '@veyra/core'
 import { glslNoiseTexture } from '@veyra/core/glsl'
-import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, refractiveSolid, studioEnvironment, threeLayer, warmUp } from '@veyra/core/three'
+import { condensationMaps, ContactShadow, heightfieldGeometry, noiseTexture, Profile, ReflectiveFloor, refractiveSolid, studioEnvironment, threeLayer } from '@veyra/core/three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 
 const stage = createStage({ quality: { dprRange: [1, 2] } })
@@ -10,11 +10,26 @@ const status: Record<string, unknown> = {}
 // ---------------------------------------------------------------------
 // 1 — A product shot: bottle, label band, condensation, floor, shadow.
 // ---------------------------------------------------------------------
-const layer = stage.use(threeLayer({ fov: 15, zIndex: 1, near: 2, autoRender: false }))
+// A steady height: on phones the address bar slides in and out without resizing the canvas.
+const layer = stage.use(threeLayer({ fov: 15, zIndex: 1, near: 2, autoRender: false, stableHeight: true }))
 const { renderer, scene, camera } = layer
 renderer.setClearColor(0x000000, 0)
 renderer.toneMapping = THREE.NeutralToneMapping
 scene.environment = studioEnvironment(renderer)
+// The environment is rendered on the GPU: after a lost context comes back, render it again.
+layer.onRestore(() => {
+  const old = scene.environment
+  scene.environment = studioEnvironment(renderer)
+  old?.dispose()
+})
+// For the browser checks: how often the canvas was resized.
+{
+  const resize = layer.resize.bind(layer)
+  layer.resize = () => {
+    status.resizes = ((status.resizes as number) ?? 0) + 1
+    resize()
+  }
+}
 
 // A generic soda bottle, measured as [radius, height] from the bottom.
 const outer = new Profile(
@@ -107,8 +122,9 @@ const shadow = new ContactShadow({ width: 1, depth: 1, far: 1, opacity: 0.85 })
 shadow.cast(bottle)
 scene.add(shadow.object)
 
-// Compile and upload before the first frame shows it.
-void warmUp(renderer, scene, camera).then(() => (status.warmed = true))
+// Compile and upload before the first frame shows it (the quality governor
+// holds its judgement meanwhile: these frames are slow on purpose).
+void layer.warmUp().then(() => (status.warmed = true))
 
 const slot = document.getElementById('slot')!
 stage.rects.track(slot, { live: true })
@@ -269,6 +285,56 @@ status.solid = () => {
   absorption.copy(saved)
   return { tinted, clear }
 }
+// For the browser checks: how much environment light a chrome ball reflects
+// before the context is lost and after it comes back — with and without
+// `onRestore` rendering the environment again. The ball is drawn alone into
+// a small target, and the page stops drawing the product meanwhile (on a
+// software renderer, every program it uses would compile again). The check
+// leaves the page paused.
+status.contextRestore = async () => {
+  stage.stop()
+  const ball = new THREE.Scene()
+  ball.add(new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: 1, roughness: 0.35 })))
+  const eye = new THREE.PerspectiveCamera(30, 1, 0.1, 10)
+  eye.position.set(0, 0, 4)
+  const target = new THREE.WebGLRenderTarget(16, 16)
+  const light = () => {
+    ball.environment = scene.environment
+    renderer.setRenderTarget(target)
+    renderer.render(ball, eye)
+    const px = new Uint8Array(4 * 16 * 16)
+    renderer.readRenderTargetPixels(target, 0, 0, 16, 16, px)
+    renderer.setRenderTarget(null)
+    let sum = 0
+    for (let i = 0; i < px.length; i += 4) sum += px[i]! + px[i + 1]! + px[i + 2]!
+    return Math.round(sum / 256)
+  }
+  const cycle = async () => {
+    const lose = gl.getExtension('WEBGL_lose_context')!
+    const event = (type: string) => new Promise((resolve) => layer.canvas.addEventListener(type, resolve, { once: true }))
+    const lost = event('webglcontextlost')
+    lose.loseContext()
+    await lost
+    const wasLost = layer.lost.value
+    // The browser allows a restore only once the lost event has finished
+    // dispatching (and its default was prevented): wait a task.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const restored = event('webglcontextrestored')
+    lose.restoreContext()
+    await restored
+    return { wasLost, back: !layer.lost.value, light: light() }
+  }
+  const before = light()
+  const rebuilt = await cycle()
+  // The same without rebuilding the environment: the ball goes dark.
+  const restorers = (layer as unknown as { restorers: Set<() => void> }).restorers
+  const saved = [...restorers]
+  restorers.clear()
+  const unrestored = await cycle()
+  for (const fn of saved) restorers.add(fn)
+  target.dispose()
+  return { before, rebuilt, unrestored }
+}
 status.software = layer.software
 status.tier = stage.quality?.tier.value
-Object.assign(window, { __ex: { status, stage, sample, slotRect } })
+Object.assign(window, { __ex: { status, stage, layer, sample, slotRect } })
