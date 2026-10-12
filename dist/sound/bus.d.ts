@@ -76,6 +76,8 @@ export declare class SoundBus {
     private readonly noiseCache;
     private readonly cleanups;
     private graceUntil;
+    /** Sound is on because the visitor turned it on (now or in an earlier visit), not by default. */
+    private chosen;
     constructor(options?: SoundOptions);
     /** The audio context, created lazily. `null` outside the browser. */
     get context(): AudioContext | null;
@@ -86,7 +88,11 @@ export declare class SoundBus {
      * resumed by the gesture under way, so that gesture's own sounds play.
      */
     get audible(): boolean;
-    /** Turns sound on. Call from a click or key handler. */
+    /**
+     * Turns sound on. Call from a click or key handler. Asked for out loud,
+     * it plays even on an iPhone switched to silent (where Safari's Audio
+     * Session API exists).
+     */
     enable(): Promise<void>;
     /** Turns sound off (fades out quickly). */
     disable(): void;

@@ -25,6 +25,8 @@ export class ScrollController {
     nativeWhenSlow;
     nativeSelector;
     smoothing = false;
+    /** Wheel distance past the end of the page as last measured; the page may have grown since. */
+    overflow = 0;
     animation = null;
     lastWritten = -1;
     locked = false;
@@ -141,6 +143,14 @@ export class ScrollController {
     /** Integrates one frame. Called by the stage in the scroll phase. */
     update(dt) {
         const prev = this.y;
+        if (this.overflow > 0) {
+            // The wheel went past the end of the page as last measured: re-measure
+            // now, at the start of the frame, and carry on if the page has grown.
+            const extra = this.overflow;
+            this.overflow = 0;
+            this.refresh();
+            this.target = clamp(this.target + extra, 0, this.limit);
+        }
         if (this.animation) {
             const a = this.animation;
             a.t += dt;
@@ -196,13 +206,17 @@ export class ScrollController {
             dy *= 40;
         else if (e.deltaMode === 2)
             dy *= window.innerHeight;
-        this.refresh();
         if (this.animation) {
             this.animation.resolve();
             this.animation = null;
             this.target = this.y;
         }
-        this.target = clamp(this.target + dy * this.wheelMultiplier, 0, this.limit);
+        // No layout reads here (trackpads send a wheel event every few ms): the
+        // limit stays current through the stage's refreshes, and a push past it
+        // is checked against a fresh measurement on the next frame.
+        const want = this.target + dy * this.wheelMultiplier;
+        this.target = clamp(want, 0, this.limit);
+        this.overflow = want > this.limit ? want - this.limit : 0;
         this.smoothing = true;
     }
     onNativeScroll() {

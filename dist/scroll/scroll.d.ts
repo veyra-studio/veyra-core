@@ -59,6 +59,8 @@ export declare class ScrollController {
     private readonly nativeWhenSlow;
     private readonly nativeSelector;
     private smoothing;
+    /** Wheel distance past the end of the page as last measured; the page may have grown since. */
+    private overflow;
     private animation;
     private lastWritten;
     private locked;

@@ -8,17 +8,25 @@
  * scroll — track those as `live`, which re-measures them once per frame
  * during the measure phase (all reads batched, no interleaved writes).
  */
+const readScrollX = () => (typeof window === 'undefined' ? 0 : window.scrollX);
 export class RectCache {
     scrollY;
     entries = new Map();
+    /**
+     * Horizontal scroll offset, read with the measurements (in the measure
+     * phase): reading `window.scrollX` makes the browser bring layout up to
+     * date, so `view()` must not read it after the frame's writes.
+     */
+    scrollX = readScrollX();
     constructor(scrollY = () => (typeof window === 'undefined' ? 0 : window.scrollY)) {
         this.scrollY = scrollY;
     }
     /** Measures an element right now (document coordinates). */
     measure(el) {
         const r = el.getBoundingClientRect();
-        const sx = typeof window === 'undefined' ? 0 : window.scrollX;
-        return { top: r.top + this.scrollY(), left: r.left + sx, width: r.width, height: r.height };
+        // Layout is up to date after the rect read: the offset costs nothing now.
+        this.scrollX = readScrollX();
+        return { top: r.top + this.scrollY(), left: r.left + this.scrollX, width: r.width, height: r.height };
     }
     /**
      * Starts tracking `el`. With `live`, it is re-measured every frame.
@@ -54,12 +62,14 @@ export class RectCache {
         }
         return entry.rect;
     }
-    /** Viewport-relative rect derived from the cache and the scroll offset. */
+    /**
+     * Viewport-relative rect derived from the cache and the scroll offset. No
+     * layout reads for tracked, fresh entries: safe to call every frame.
+     */
     view(el, scrollY = this.scrollY()) {
         const r = this.get(el);
-        const sx = typeof window === 'undefined' ? 0 : window.scrollX;
         const top = r.top - scrollY;
-        const left = r.left - sx;
+        const left = r.left - this.scrollX;
         return { top, left, width: r.width, height: r.height, bottom: top + r.height, right: left + r.width };
     }
     /** Marks every cached rect stale; they re-measure lazily. */
@@ -67,14 +77,21 @@ export class RectCache {
         for (const entry of this.entries.values())
             entry.stale = true;
     }
-    /** Re-measures live entries. Called once per frame in the measure phase. */
+    /** Re-measures live entries (and the scroll offset). Called once per frame in the measure phase. */
     updateLive() {
+        if (this.entries.size === 0)
+            return;
+        let measured = false;
         for (const [el, entry] of this.entries) {
             if (entry.live || entry.stale) {
                 entry.rect = this.measure(el);
                 entry.stale = false;
+                measured = true;
             }
         }
+        // Measuring read the offset already; otherwise read it here, once.
+        if (!measured)
+            this.scrollX = readScrollX();
     }
     get size() {
         return this.entries.size;

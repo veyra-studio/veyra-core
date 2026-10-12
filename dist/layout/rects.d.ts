@@ -23,6 +23,12 @@ export interface ViewRect extends DocRect {
 export declare class RectCache {
     private readonly scrollY;
     private readonly entries;
+    /**
+     * Horizontal scroll offset, read with the measurements (in the measure
+     * phase): reading `window.scrollX` makes the browser bring layout up to
+     * date, so `view()` must not read it after the frame's writes.
+     */
+    private scrollX;
     constructor(scrollY?: () => number);
     /** Measures an element right now (document coordinates). */
     measure(el: Element): DocRect;
@@ -35,11 +41,14 @@ export declare class RectCache {
     }): () => void;
     /** Cached document rect (measures on first use or when stale). */
     get(el: Element): DocRect;
-    /** Viewport-relative rect derived from the cache and the scroll offset. */
+    /**
+     * Viewport-relative rect derived from the cache and the scroll offset. No
+     * layout reads for tracked, fresh entries: safe to call every frame.
+     */
     view(el: Element, scrollY?: number): ViewRect;
     /** Marks every cached rect stale; they re-measure lazily. */
     invalidate(): void;
-    /** Re-measures live entries. Called once per frame in the measure phase. */
+    /** Re-measures live entries (and the scroll offset). Called once per frame in the measure phase. */
     updateLive(): void;
     get size(): number;
 }

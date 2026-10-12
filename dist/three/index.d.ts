@@ -12,6 +12,7 @@
  * entry point need it.
  */
 import * as THREE from 'three';
+import { type ReadonlySignal } from '../core/signal.js';
 import { type Frame } from '../core/ticker.js';
 import type { Stage, StagePlugin } from '../stage.js';
 export interface ThreeLayerOptions {
@@ -44,6 +45,17 @@ export interface ThreeLayerOptions {
      * Default `false` (three.js behavior); also settable on the layer.
      */
     seeThroughGlass?: boolean;
+    /**
+     * Size the canvas to the large viewport (`100lvh`, see
+     * `viewport.stableHeight`) instead of the window. On phones the address
+     * bar then slides in and out without the canvas resizing — no stretched
+     * frames, no new drawing buffer, no camera jump; while the bar shows, the
+     * canvas reaches under it. Anchors and the pixel camera use the same
+     * height (`layer.height`): place things with it rather than
+     * `innerHeight`. A canvas you pass in needs `height: 100lvh` in its CSS.
+     * Default `false`.
+     */
+    stableHeight?: boolean;
     /** Called every frame before rendering. */
     onFrame?: (layer: ThreeLayer, frame: Readonly<Frame>) => void;
 }
@@ -88,15 +100,40 @@ export declare class ThreeLayer {
     readonly software: boolean;
     /** See `ThreeLayerOptions.seeThroughGlass`. */
     seeThroughGlass: boolean;
-    /** Viewport size in CSS pixels. */
+    /** See `ThreeLayerOptions.stableHeight`. */
+    readonly stableHeight: boolean;
+    /** Canvas size in CSS pixels: the viewport (with `stableHeight`, the large viewport's height). */
     width: number;
     height: number;
     autoRender: boolean;
+    /**
+     * True while the WebGL context is lost — the system took the GPU back
+     * (often on phones, in the background or short of memory). Nothing draws
+     * until it returns; see `onRestore`.
+     */
+    readonly lost: ReadonlySignal<boolean>;
+    private readonly lostState;
+    private readonly restorers;
     private readonly anchors;
     private readonly ownsCanvas;
     private readonly cleanups;
     private readonly maxDpr;
+    private sizeDirty;
     constructor(stage: Stage, options?: ThreeLayerOptions);
+    /**
+     * Runs `fn` when a lost WebGL context comes back, after three.js has
+     * restored itself: rebuild what existed only on the GPU — an environment
+     * from `studioEnvironment`, anything rendered once into a target. Meshes,
+     * materials and textures with their data upload again by themselves.
+     * Returns a remover.
+     */
+    onRestore(fn: () => void): () => void;
+    /**
+     * `warmUp` on this layer's renderer, with the stage's quality governor on
+     * hold meanwhile: its frames are slow on purpose and say nothing about
+     * the device. Defaults to the layer's own scene and camera.
+     */
+    warmUp(scene?: THREE.Object3D, camera?: THREE.Camera): Promise<void>;
     /** Distance from camera to the `z = 0` plane, where 1 unit = 1 CSS px. */
     get distance(): number;
     /** Positions `object` over `el` every frame. */

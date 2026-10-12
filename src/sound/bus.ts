@@ -71,13 +71,29 @@ export interface BurstOptions {
   pan?: number
 }
 
-function readStored(key: string | false, fallback: boolean): boolean {
-  if (!key) return fallback
+/** The visitor's stored choice: `true` on, `false` off, `null` not chosen yet (or no storage). */
+function readStored(key: string | false): boolean | null {
+  if (!key) return null
   try {
     const stored = localStorage.getItem(key)
-    return stored === null ? fallback : stored === '1'
+    return stored === null ? null : stored === '1'
   } catch {
-    return fallback
+    return null
+  }
+}
+
+/**
+ * Safari's Audio Session API (iOS 16.4+): `'playback'` plays like media,
+ * even with the ring/silent switch on silent; `'auto'` lets the system
+ * decide, which keeps Web Audio quiet on silent.
+ */
+function setAudioSession(type: 'auto' | 'playback'): void {
+  const session = typeof navigator === 'undefined' ? undefined : (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+  if (!session || session.type === type) return
+  try {
+    session.type = type
+  } catch {
+    /* not allowed here — keep the system's choice */
   }
 }
 
@@ -101,11 +117,15 @@ export class SoundBus {
   private readonly noiseCache = new Map<string, AudioBuffer>()
   private readonly cleanups: Array<() => void> = []
   private graceUntil = 0
+  /** Sound is on because the visitor turned it on (now or in an earlier visit), not by default. */
+  private chosen: boolean
 
   constructor(options: SoundOptions = {}) {
     this.key = options.storageKey ?? 'veyra:sound'
     this.volume = options.volume ?? 0.8
-    this.enabled = signal(readStored(this.key, options.defaultOn ?? false))
+    const stored = readStored(this.key)
+    this.chosen = stored === true
+    this.enabled = signal(stored ?? options.defaultOn ?? false)
     if (typeof window === 'undefined') return
 
     // An "on" from storage or the default still needs a gesture before
@@ -114,7 +134,11 @@ export class SoundBus {
     // capture phase so the context is resuming before the page's own
     // handlers play their sounds.
     const unlock = () => {
-      if (this.enabled.value && this.ctx?.state !== 'running') void this.resume(true)
+      if (!this.enabled.value || this.ctx?.state === 'running') return
+      // Sound the visitor asked for plays on a phone set to silent, like a
+      // video they start; sound that is merely on by default follows the switch.
+      if (this.chosen) setAudioSession('playback')
+      void this.resume(true)
     }
     for (const type of ACTIVATION) window.addEventListener(type, unlock, { capture: true, passive: true })
     const onVisibility = () => {
@@ -154,17 +178,25 @@ export class SoundBus {
     return this.ctx.state === 'running' || (this.ctx.state !== 'closed' && now() < this.graceUntil)
   }
 
-  /** Turns sound on. Call from a click or key handler. */
+  /**
+   * Turns sound on. Call from a click or key handler. Asked for out loud,
+   * it plays even on an iPhone switched to silent (where Safari's Audio
+   * Session API exists).
+   */
   async enable(): Promise<void> {
+    this.chosen = true
     this.enabled.set(true)
     this.persist()
+    setAudioSession('playback')
     await this.resume(true)
   }
 
   /** Turns sound off (fades out quickly). */
   disable(): void {
+    this.chosen = false
     this.enabled.set(false)
     this.persist()
+    setAudioSession('auto')
     if (this.ctx && this.master) {
       const t = this.ctx.currentTime
       this.master.gain.cancelScheduledValues(t)
@@ -313,9 +345,12 @@ export class SoundBus {
         return
       }
     }
+    // The bus may have been destroyed while the context resumed.
+    const master = this.master
+    if (this.ctx !== ctx || !master) return
     const t = ctx.currentTime
-    this.master.gain.cancelScheduledValues(t)
-    this.master.gain.setTargetAtTime(this.enabled.value ? this.volume : 0, t, 0.08)
+    master.gain.cancelScheduledValues(t)
+    master.gain.setTargetAtTime(this.enabled.value ? this.volume : 0, t, 0.08)
   }
 
   private persist(): void {

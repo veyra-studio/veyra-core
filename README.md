@@ -41,11 +41,11 @@ Live showcase: **[Abali](https://veyra-studio.github.io/abali/)** — a Persian,
 | **Type** | Script-aware `splitText`: Arabic-script letters (Persian, Arabic, Urdu…) **keep their joined forms** when split, lam-alef stays whole, mixed-direction runs keep their order, screen readers get the text once. **Kashida** stretches Persian words on calligraphically ranked connections; `scrambleText` decodes with each script's own letters. |
 | **Procedural** | Seeded gradient noise (`noise2/3`, `fbm`) for organic motion; `@veyra/core/glsl` — hash, noise, SDF, OKLab color and math chunks for your shaders, and noise read from a baked, tiling noise texture (`noiseTexture`) for full-screen surfaces. **Terrain**: eroded and ridged noise height fields with baked sun shadows and ambient occlusion — DOM-free, worker-friendly. |
 | **Image sequences** | Scroll-scrubbed frame sequences on a canvas, loaded coarse-to-fine so they respond before every frame has arrived; resolution follows the quality governor. |
-| **Quality** | Adaptive governor: detects refresh rate, measures real frame times, steps quality and pixel ratio down under load and back up with headroom. |
+| **Quality** | Adaptive governor: detects refresh rate, judges real frame times (a few hitches don't count), steps quality and pixel ratio down under sustained load and back up with headroom; `hold()` while a page builds or compiles; tiers that don't flicker. |
 | **Assets** | Weighted preloader for images, fonts, fetches and any promise; failures never block the experience. |
-| **Sound** | Optional audio bus: off by default (or on, `defaultOn`), persisted per visitor, unlocked on the first click, tap or key and again after the system suspends it, muted when the tab is hidden; noise buffers, synthesized `tone` and `burst` one-shots. |
+| **Sound** | Optional audio bus: off by default (or on, `defaultOn`), persisted per visitor, unlocked on the first click, tap or key and again after the system suspends it, audible on a silent iPhone when the visitor asked for it, muted when the tab is hidden; noise buffers, synthesized `tone` and `burst` one-shots. |
 | **Debug** | `?debug` overlay: frame-time graph, FPS, quality, scroll, and a scroll map of every scene's range. |
-| **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), DOM-anchored objects, DOM text mirrored into textures with the browser's own line breaks. **Product rendering**: turned shapes from measured silhouettes (`Profile`) with label bands that keep artwork true on cones, studio light baked from code, condensation maps, glossy reflective floors, contact shadows, ray-traced clear solids (ice, glass blocks, crystal: `refractiveSolid`), terrain meshes. |
+| **three.js** *(optional)* | `@veyra/core/three`: renderer on the stage loop, pixel-perfect camera (1 unit = 1 CSS px), a canvas that holds still while a phone's address bar moves (`stableHeight`), lost-context recovery (`onRestore`), DOM-anchored objects, DOM text mirrored into textures with the browser's own line breaks. **Product rendering**: turned shapes from measured silhouettes (`Profile`) with label bands that keep artwork true on cones, studio light baked from code, condensation maps, glossy reflective floors, contact shadows, ray-traced clear solids (ice, glass blocks, crystal: `refractiveSolid`), terrain meshes. |
 | **Utilities** | `whenVisible`, `stage.media()`, `stage.onRefresh()`, `drawElementText` (real HTML text into a canvas), `supportsWebGL2`, `toPersianDigits`, `inlineSign` and the math helpers (`range`, `damp`, `mapRange`, …). |
 
 Zero runtime dependencies. Projects ship only what they import: a page with the stage, scenes and text splitting carries ~17 KB min+gzip of engine, adding horizontal sections, dragging and a marquee ~19 KB; everything together is ~31 KB. Stage-dependent capabilities are plugins (`stage.use(horizontal(…))`), so unused ones cost nothing. three.js is an optional peer dependency used only through `@veyra/core/three`; shader chunks live in `@veyra/core/glsl`.
@@ -59,7 +59,7 @@ npm install @veyra/core@github:veyra-studio/veyra-core#release
 npm install three        # only for @veyra/core/three
 ```
 
-Pin a version with a tag: `github:veyra-studio/veyra-core#v0.7.0`.
+Pin a version with a tag: `github:veyra-studio/veyra-core#v0.8.0`.
 
 ## Develop
 

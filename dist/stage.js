@@ -80,6 +80,9 @@ export function createStage(options = {}) {
             document.addEventListener('DOMContentLoaded', mount, { once: true });
     }
     cleanups.push(viewport.onLayout(() => (needsRefresh = true)));
+    // A window moved to a denser screen, or a zoom: the recommended pixel ratio follows.
+    if (quality)
+        cleanups.push(viewport.dpr.subscribe(() => quality.syncDpr()));
     if (typeof document !== 'undefined') {
         const onFonts = () => (needsRefresh = true);
         document.fonts?.addEventListener?.('loadingdone', onFonts);
