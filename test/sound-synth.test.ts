@@ -104,4 +104,33 @@ describe('SoundBus on and off', () => {
     expect(contextOf(bus)).toBeNull()
     bus.destroy()
   })
+
+  it('plays through an iPhone set to silent only when the visitor asked for sound', async () => {
+    withAudio()
+    const session = { type: 'auto' }
+    Object.defineProperty(navigator, 'audioSession', { value: session, configurable: true })
+    try {
+      // On by default: the ring/silent switch decides.
+      const byDefault = new SoundBus({ storageKey: 'k', defaultOn: true })
+      window.dispatchEvent(new Event('click'))
+      await Promise.resolve()
+      expect(contextOf(byDefault)?.state).toBe('running')
+      expect(session.type).toBe('auto')
+      // Turned on out loud: it plays like media, and off hands it back.
+      byDefault.disable()
+      await byDefault.enable()
+      expect(session.type).toBe('playback')
+      byDefault.disable()
+      expect(session.type).toBe('auto')
+      byDefault.destroy()
+      // A choice stored from an earlier visit counts as asked for.
+      localStorage.setItem('k', '1')
+      const remembered = new SoundBus({ storageKey: 'k', defaultOn: true })
+      window.dispatchEvent(new Event('click'))
+      expect(session.type).toBe('playback')
+      remembered.destroy()
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).audioSession
+    }
+  })
 })
