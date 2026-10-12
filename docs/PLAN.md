@@ -16,6 +16,7 @@ Master tracker for the Veyra repositories. Keep it current: it is how work conti
 - **Abali**: Vite + TypeScript single page, three.js for the product, base path `/abali/` in every mode.
 - **Studio site**: Astro static site, English at `/`, Persian at `/fa/` (each written natively), cross-document View Transitions for the language switch.
 - **Deploy**: GitHub Actions → GitHub Pages (`upload-pages-artifact@v5` + `deploy-pages@v4`) in both site repos; PRs build as a check.
+- **Workflow** (owner decision 2026-10-13): work is committed and pushed straight to `main` from the owner's Windows machine (`gh auth setup-git` done) — no pull requests, no work branches. A push to veyra-core `main` publishes the engine; push the engine first and let `release` update before pushing a site change that needs it.
 
 ## ⚠️ Owner actions
 
@@ -25,8 +26,7 @@ Open:
 
 1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 2. *(Optional)* A native Persian copywriter's read of Abali's copy («خنکی صدا دارد.» and the chapters), and a check on real mid-range phones.
-3. Review the 2026-10-13 branches (`claude/engine-0.8`, `claude/every-device`, `claude/contact`, `claude/plan`) and merge the engine first: Abali needs 0.8 on `release` before its branch builds in CI.
-4. Durex: photographs of the packaging to sample from (reference only), and a decision on the headline (see `durex/README.md`).
+3. Durex: photographs of the packaging to sample from (reference only), and a decision on the headline (see `durex/README.md`).
 
 ## Status
 
@@ -147,4 +147,5 @@ English, witty and luxurious, everything floating: foil packets in zero gravity,
 - Abali (`claude/every-device`, built against the packed 0.8.0): all 37 checks pass on SwiftShader, including the new ones (commission address, address bar, lost context with the drawn fallback). On the owner's GPU (D3D11, headless), engine 0.7 and 0.8 both stay high; 0.8 holds its judgement until the later worlds are built, then climbs to 1.0. The Nastaliq subset renders pixel-identically (canvas comparison at 400 and 700). Its lockfile still pins 0.7: run `npm run engine:update` once 0.8 is on `release`.
 - Studio site (`claude/contact`): the «Commissions» section, nav link and footer address in four languages; the 320 px overflow fixed; 186 checks pass.
 - Durex (`claude/plan`): concept and build plan written (owner's choices: English, witty and luxurious, all four extra scenes besides «Pump» and «Let go»). Nothing built yet.
-- Nothing committed or pushed: the owner reviews the branches first (see Owner actions).
+- Shipped: the owner merged veyra-core #19 (0.8.0 published to `release`, tag `v0.8.0`) and abali #17 — 24 s before the engine, so Abali's deploy built against 0.7 and failed (the old site stayed live) until its lockfile moved to 0.8 and it was pushed again. The studio site and Durex went straight to `main`.
+- Owner decision: from now on, commit and push straight to `main` — no pull requests (see Key decisions → Workflow).

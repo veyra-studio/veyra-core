@@ -15,7 +15,9 @@ npm run verify:examples   # after examples:build — drives every example in hea
 npm run release:pack  # check + pack release/veyra-core-<version>.tgz
 ```
 
-Projects install the engine from the `release` branch, which CI publishes from every green `main` build (`scripts/release-branch.mjs`). Merging to `main` ships to the sites; keep changes additive within a version.
+Projects install the engine from the `release` branch, which CI publishes from every green `main` build (`scripts/release-branch.mjs`). A push to `main` ships to the sites; keep changes additive within a version.
+
+Workflow (owner decision 2026-10-13): commit and push straight to `main` from the owner's machine — no pull requests, no work branches. Verify first (`npm run check`, and `npm run verify:examples` for anything visible). When a site needs a new engine API, push the engine first and let CI update `release` before pushing the site.
 
 ## Layout
 
