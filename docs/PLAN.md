@@ -7,7 +7,7 @@ Master tracker for the Veyra repositories. Keep it current: it is how work conti
 | [veyra-core](https://github.com/veyra-studio/veyra-core) | The engine (source of truth) | `release` branch, built by CI (later npm) |
 | [abali](https://github.com/veyra-studio/abali) | First showcase: Persian RTL campaign concept for Doogh Abali | https://veyra-studio.github.io/abali/ |
 | [veyra-studio.github.io](https://github.com/veyra-studio/veyra-studio.github.io) | Multilingual (EN/FA/AR/TR) studio + engine website; takes commissions (itsmetti@proton.me) | https://veyra-studio.github.io/ |
-| [durex](https://github.com/veyra-studio/durex) | Second showcase (in production): English campaign concept for Durex Invisible, «Zero gravity.» | https://veyra-studio.github.io/durex/ (once Pages is on) |
+| [durex](https://github.com/veyra-studio/durex) | Second showcase (complete): English campaign concept for Durex Invisible, «Zero gravity.» | https://veyra-studio.github.io/durex/ |
 
 ## Key decisions (details in [architecture.md](architecture.md))
 
@@ -20,13 +20,12 @@ Master tracker for the Veyra repositories. Keep it current: it is how work conti
 
 ## ⚠️ Owner actions
 
-Done: GitHub access, Pages set to GitHub Actions in both site repositories, both sites deployed from `main`, the engine released from the `release` branch (0.2 → 0.4.2), the studio's 0.2 showcase and the Abali redesign merged. Every work branch is merged and deleted: each repository has only `main` (plus veyra-core's `release`, the build branch the sites install from — CI writes it, keep it).
+Done: GitHub access, Pages set to GitHub Actions in all three site repositories, every site deployed from `main`, the engine released from the `release` branch (0.2 → 0.4.2), the studio's 0.2 showcase and the Abali redesign merged. Every work branch is merged and deleted: each repository has only `main` (plus veyra-core's `release`, the build branch the sites install from — CI writes it, keep it).
 
 Open:
 
 1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali`, `durex` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 2. *(Optional)* A native Persian copywriter's read of Abali's copy («خنکی صدا دارد.» and the chapters), and a check on real mid-range phones.
-3. Durex: Settings → Pages → Build and deployment → Source: **GitHub Actions** (once), so `main` deploys to https://veyra-studio.github.io/durex/. Until then its deploy fails and the hourly engine check waits.
 
 ## Status
 
@@ -70,12 +69,13 @@ Open:
 ### Phase 5 — Next
 - **Abali**: profile on real mid-range Android/iOS phones (the emulated weak-phone profile is in `lab/weak.mjs`, not a substitute); a native copywriter's review; perhaps recorded sounds as an audio sprite beside the synthesized ones; a short share card at the end.
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
-- **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
+- **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship (next: Durex, «Case 002»).
 
-### Phase 6 — Durex, «Zero gravity.» (built: every chapter)
+### Phase 6 — Durex, «Zero gravity.» ✅
 English, witty and luxurious, everything floating: foil packets in zero gravity, tear one open, unroll it, blow it up — 18 litres, the standard; about 40, what Durex says a typical one holds — and let it go: it flies around the page like an untied balloon, bouncing off the real headlines. Then the water test, and «Play safe». Concept, facts with sources, chapters and the build plan: [durex/README.md](https://github.com/veyra-studio/durex/blob/main/README.md). Engine work first: light rigid-body physics with DOM colliders, `SoundBus.voice()`, a press-and-hold input.
 - Built (owner's answers: Durex Invisible; the opening a baby's cry, then «Annoying, isn't it?»; English only): the skeleton (Vite multi-page, engine 0.8, Pages workflow, `npm run verify`), the models — the foil packet and the condom, measured (54 mm packet; 180 mm long, 54 mm nominal width), the condom rolled, unrolled and inflated with its litres integrated from the shape — reviewed on `/durex/models.html`; the loader, the sound gate, the synthesized cry and the punchline among floating packets; chapter 00, a packet forward and turning over.
 - Then the whole film (session 4): 01 Rip, 02 Roll, 03 Pump, 04 Let go / Tie it, 05 Tested, 06 Play safe — on engine 0.9 (physics, `holdable`, sound voices), with natural CC0 recordings and, since session 4's follow-up, Kevin MacLeod's «Smooth Lovin» (CC BY 4.0, the owner's pick) as the music, see the session log.
+- Complete (the owner's call, 2026-10-14): live at https://veyra-studio.github.io/durex/, with its repository's description, website and topics set.
 
 ## Session log
 
@@ -173,3 +173,4 @@ English, witty and luxurious, everything floating: foil packets in zero gravity,
 - The owner sent their own copy of «Careless Whisper» to use as the music — declined: it is copyrighted, and the site and the repository are public; the copy was not kept. From free alternatives they listened to, they picked «Smooth Lovin» by Kevin MacLeod (incompetech.com, CC BY 4.0), credited in the footer with its licence and what was changed (a check looks for it).
 - The loop: exactly 75 bpm (long-lag autocorrelation), first downbeat at 0.16 s (onsets summed over the song at every phase, to the millisecond; the harmony changes on that beat), bars 17–32 — where the loop's two ends are most alike in harmony (beat chroma) and rhythm — levelled to play at about −24 LUFS, like the loop before it. The music is now booked pass after pass on the audio clock (`Tune` in Durex's `src/sound.ts`) instead of turned over by frames: each pass fades in over the tenth of a second before its first downbeat while the one before fades out over the same moment, so the beat never slips and the downbeat comes from the new pass alone (longer lead-ins dipped 3–7 dB before the downbeat).
 - Shipped first at the owner's request (they were in a hurry), then checked: 52 pass on SwiftShader, 51 on the GPU (D3D11).
+- Then the tied balloon's line: «bat it about» became «give it a push» (the owner didn't follow the idiom). The owner called Durex complete; the repository got its description, website and topics.
