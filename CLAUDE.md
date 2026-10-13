@@ -1,6 +1,6 @@
 # Veyra Core — working notes for Claude Code
 
-The engine repository of the Veyra project. Read `docs/PLAN.md` first: it is the master plan and progress tracker for all the repositories (`veyra-core`, `veyra-studio.github.io`, `abali`, and `durex`, planned).
+The engine repository of the Veyra project. Read `docs/PLAN.md` first: it is the master plan and progress tracker for all the repositories (`veyra-core`, `veyra-studio.github.io`, `abali`, and `durex`, in production).
 
 ## Commands
 

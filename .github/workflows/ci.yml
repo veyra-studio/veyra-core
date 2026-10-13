@@ -45,8 +45,8 @@ jobs:
       cancel-in-progress: false
     env:
       # Optional: a fine-grained token with "Contents: read and write" on the
-      # two site repositories lets them rebuild right away. Without it they
-      # pick up the new engine within the hour.
+      # site repositories lets them rebuild right away. Without it they pick up
+      # the new engine within the hour.
       SITES_DISPATCH_TOKEN: ${{ secrets.SITES_DISPATCH_TOKEN }}
     steps:
       - uses: actions/checkout@v5
@@ -62,10 +62,12 @@ jobs:
       - name: Ask the sites to rebuild with the new engine
         if: steps.release.outputs.changed == 'true' && env.SITES_DISPATCH_TOKEN != ''
         run: |
-          for repo in abali veyra-studio.github.io; do
+          # A site the token can't reach still updates within the hour: warn, don't fail the release.
+          for repo in abali durex veyra-studio.github.io; do
             curl -fsS -X POST \
               -H "Authorization: Bearer $SITES_DISPATCH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/veyra-studio/$repo/dispatches" \
-              -d '{"event_type":"engine-updated","client_payload":{"commit":"${{ steps.release.outputs.commit }}"}}'
+              -d '{"event_type":"engine-updated","client_payload":{"commit":"${{ steps.release.outputs.commit }}"}}' \
+              || echo "::warning::Could not ask $repo to rebuild (does the token reach it?)"
           done

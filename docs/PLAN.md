@@ -7,7 +7,7 @@ Master tracker for the Veyra repositories. Keep it current: it is how work conti
 | [veyra-core](https://github.com/veyra-studio/veyra-core) | The engine (source of truth) | `release` branch, built by CI (later npm) |
 | [abali](https://github.com/veyra-studio/abali) | First showcase: Persian RTL campaign concept for Doogh Abali | https://veyra-studio.github.io/abali/ |
 | [veyra-studio.github.io](https://github.com/veyra-studio/veyra-studio.github.io) | Multilingual (EN/FA/AR/TR) studio + engine website; takes commissions (itsmetti@proton.me) | https://veyra-studio.github.io/ |
-| [durex](https://github.com/veyra-studio/durex) | Second showcase (planned): English campaign concept for Durex, «Zero gravity.» | https://veyra-studio.github.io/durex/ (once built) |
+| [durex](https://github.com/veyra-studio/durex) | Second showcase (in production): English campaign concept for Durex Invisible, «Zero gravity.» | https://veyra-studio.github.io/durex/ (once Pages is on) |
 
 ## Key decisions (details in [architecture.md](architecture.md))
 
@@ -15,7 +15,7 @@ Master tracker for the Veyra repositories. Keep it current: it is how work conti
 - **Integration** (ADR-010, owner decision 2026-10-10): projects depend on `github:veyra-studio/veyra-core#release`. CI publishes every green `main` build to `release` (packed package, no dev dependencies, history kept, `v<version>` tags). Projects install the newest release at build time, record it in `engine.json`, and rebuild on `repository_dispatch` (optional token) or an hourly check. Live co-development via `VEYRA_CORE_SRC=../veyra-core`.
 - **Abali**: Vite + TypeScript single page, three.js for the product, base path `/abali/` in every mode.
 - **Studio site**: Astro static site, English at `/`, Persian at `/fa/` (each written natively), cross-document View Transitions for the language switch.
-- **Deploy**: GitHub Actions → GitHub Pages (`upload-pages-artifact@v5` + `deploy-pages@v4`) in both site repos; PRs build as a check.
+- **Deploy**: GitHub Actions → GitHub Pages (`upload-pages-artifact@v5` + `deploy-pages@v4`) in every site repository; PRs build as a check.
 - **Workflow** (owner decision 2026-10-13): work is committed and pushed straight to `main` from the owner's Windows machine (`gh auth setup-git` done) — no pull requests, no work branches. A push to veyra-core `main` publishes the engine; push the engine first and let `release` update before pushing a site change that needs it.
 
 ## ⚠️ Owner actions
@@ -24,9 +24,9 @@ Done: GitHub access, Pages set to GitHub Actions in both site repositories, both
 
 Open:
 
-1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
+1. *(Optional)* `SITES_DISPATCH_TOKEN` in `veyra-core` → Settings → Secrets → Actions: a fine-grained token with **Contents: read and write** on `abali`, `durex` and `veyra-studio.github.io`, so the sites rebuild right after an engine release instead of within the hour.
 2. *(Optional)* A native Persian copywriter's read of Abali's copy («خنکی صدا دارد.» and the chapters), and a check on real mid-range phones.
-3. Durex: photographs of the packaging to sample from (reference only), and a decision on the headline (see `durex/README.md`).
+3. Durex: Settings → Pages → Build and deployment → Source: **GitHub Actions** (once), so `main` deploys to https://veyra-studio.github.io/durex/. Until then its deploy fails and the hourly engine check waits.
 
 ## Status
 
@@ -72,8 +72,10 @@ Open:
 - **Engine**: WebGPU path via `three/webgpu`, a scene timeline scrubber in the debug overlay, audio sprites, page transitions beyond cross-document View Transitions, a declarative `data-` attribute layer, published npm package (claim `@veyra` scope).
 - **Studio site**: `/docs/` generated from `veyra-core/docs`, more case studies as showcases ship.
 
-### Phase 6 — Durex, «Zero gravity.» (planned)
+### Phase 6 — Durex, «Zero gravity.» (in production)
 English, witty and luxurious, everything floating: foil packets in zero gravity, tear one open, unroll it, blow it up — 18 litres, the standard; about 40, what Durex says a typical one holds — and let it go: it flies around the page like an untied balloon, bouncing off the real headlines. Then the water test, and «Play safe». Concept, facts with sources, chapters and the build plan: [durex/README.md](https://github.com/veyra-studio/durex/blob/main/README.md). Engine work first: light rigid-body physics with DOM colliders, `SoundBus.voice()`, a press-and-hold input.
+- Built (owner's answers: Durex Invisible; the opening a baby's cry, then «Annoying, isn't it?»; English only): the skeleton (Vite multi-page, engine 0.8, Pages workflow, `npm run verify`), the models — the foil packet and the condom, measured (54 mm packet; 180 mm long, 54 mm nominal width), the condom rolled, unrolled and inflated with its litres integrated from the shape — reviewed on `/durex/models.html`; the loader, the sound gate, the synthesized cry and the punchline among floating packets; chapter 00, a packet forward and turning over.
+- Next: Rip and Roll on the existing models; then the engine work above for Pump and Let go.
 
 ## Session log
 
@@ -149,3 +151,12 @@ English, witty and luxurious, everything floating: foil packets in zero gravity,
 - Durex (`claude/plan`): concept and build plan written (owner's choices: English, witty and luxurious, all four extra scenes besides «Pump» and «Let go»). Nothing built yet.
 - Shipped: the owner merged veyra-core #19 (0.8.0 published to `release`, tag `v0.8.0`) and abali #17 — 24 s before the engine, so Abali's deploy built against 0.7 and failed (the old site stayed live) until its lockfile moved to 0.8 and it was pushed again. The studio site and Durex went straight to `main`.
 - Owner decision: from now on, commit and push straight to `main` — no pull requests (see Key decisions → Workflow).
+
+### 2026-10-13 — session 3, continued (Durex: the models and the opening)
+- Owner answers: the product is Durex Invisible; the opening is a baby's cry, then «Annoying, isn't it?»; no Persian version.
+- Durex built to chapter 00 (see Phase 6). Models: the packet is a crumpled foil pillow with crimped seams, zigzag tear edges and both faces printed on canvas (colour plus packed roughness/metalness maps, procedural crimp and crinkle normals), instanced in the cloud; the condom is a turned profile rebuilt each frame (unroll 0…1, litres 0…40), in a premultiplied thin-film latex material: reflections add at any opacity, the film's own light scales with `1 − (1 − a)^layers`, so a rolled rim reads as satin latex and not chrome; creases fade with stretch and below a pixel. Volume is integrated from the shape: 18 L stands 50 cm tall, 40 L 83 cm.
+- Sound: the cry is synthesized — a sawtooth through a soft clipper and three formant filters gliding from «w» to «a», with vibrato and gasps — after a gate that turns sound on by an explicit choice (so a silent iPhone plays it too).
+- Checks: `npm run verify` — 31 pass on SwiftShader, 30 on the owner's GPU (`--gpu`, D3D11): gate and keyboard, silent and with sound, the cloud (its tier, its light build without a GPU, clear of the copy), chapter 00 in and out, the models' sizes and litres, 390 px overflow, reduced motion, no WebGL. The film and the models were also looked at on the GPU, frame by frame. Note for checks: the ticker clamps frames to 1/15 s, so on software rendering tweens take longer than their duration — wait for end states, not for time.
+- Words first: the packets keep out of the copy — each chapter's copy is a zone measured from layout boxes on refresh; a home inside one moves out by its nearest side, and a packet inside one is pushed out in about half a second (the soft spring alone takes seconds). The same measured boxes are the start of «Let go»'s DOM colliders.
+- Found by the checks (a screenshot timing out): on a software renderer `threeLayer` lowers the quality as it is made, but Durex read the tier before making it — a machine without a GPU got the heaviest build (14 packets, 2048 px artwork, 150-segment meshes) at 0.3–1 fps. The world now reads the tier after its layer and follows it itself, and the cloud draws a coarser mesh (64/48/32 segments; the featured packet keeps 150/110/70, and the cloud looks the same): on SwiftShader the film runs at ~12 fps. The guide now says to read the tier after the layer; Abali already does.
+- Engine CI now asks `durex` to rebuild after a release too (when the optional token exists; a site it can't reach is a warning, not a failed release).
