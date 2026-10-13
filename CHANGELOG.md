@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 — 2026-10-13
+
+Things that touch, a hand that holds, recordings that play like instruments. Additive: nothing removed or changed in behaviour.
+
+- **Physics** (`PhysicsWorld`, `Body`, `domColliders`): light rigid bodies for a page's worth of objects. Boxes and spheres, alone or compound; static planes; gravity or none; sub-stepped sequential impulses with friction and bounce. Box–box contacts come from the separating axis test with face clipping, so a box landing flat rests on four contacts and one hit by a corner spins off. Dynamic, kinematic (moved by you, with a velocity) and static bodies; shapes resize live with the inertia following; group/mask filtering; per-substep force callbacks for springs and fields; contact events with impulse, closing speed, point, normal and `began` — for sound. `domColliders` turns page elements into boxes in the pixel camera's world that follow the scroll (rect cache, no per-frame layout reads; `live` for sticky pins). Durex's floating packets knock into each other instead of passing through, and its balloon, let go, bounces off the screen's edges and the headlines.
+- **`holdable`**: press and hold with a mouse, a finger or a key (Space and Enter on a focused button, without scrolling or repeating) — `onStart`, `onHold(hold, dt)` every frame, `onEnd`; `data-held` while held; a long press's context menu held back.
+- **Sound — recordings**: `play()` takes `offset`, `duration`, `fadeIn` and `fadeOut` (scheduled on the audio clock; a grain cut from a take doesn't click); `voice()` returns a sound still playing whose volume and pitch glide on request, looped or not, and fade out when stopped.
+- Guide: a section on the hold input, on recordings and voices, and on physics — including when to read the quality tier: after `stage.use(threeLayer(...))`, which lowers it on a software renderer.
+
 ## 0.8.0 — 2026-10-13
 
 Every device: strong ones keep their quality, phones keep their canvas, silent iPhones play sound that was asked for, and the toolchain runs on Windows. No API removed; the quality governor's defaults change.

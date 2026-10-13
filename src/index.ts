@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-export const VERSION = '0.8.0'
+export const VERSION = '0.9.0'
 
 export * from './core/math.js'
 export * from './core/ease.js'
@@ -39,8 +39,13 @@ export * from './interaction/drag.js'
 export * from './interaction/magnetic.js'
 export * from './interaction/tilt.js'
 export * from './interaction/cursor.js'
+export * from './interaction/hold.js'
 export * from './effects/marquee.js'
 export * from './media/sequence.js'
+
+export { quat, vec3, type Quat, type Vec3 } from './physics/math.js'
+export * from './physics/world.js'
+export * from './physics/dom.js'
 
 export * from './assets/preload.js'
 export * from './quality/governor.js'

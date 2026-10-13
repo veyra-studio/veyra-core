@@ -263,6 +263,19 @@ stage.use(cursor({ targets: 'a, button, [data-cursor]' }))
 - `cursor` creates `.veyra-cursor` (style it in CSS). Over a target it gets `is-active`; a `data-cursor="View"` (or «ببین») becomes its label and `data-cursor-state`. The native cursor stays unless `hideNative: true`.
 - All three are off for touch input and reduced motion.
 
+## Press and hold
+
+```ts
+const pump = stage.use(holdable('.pump', {
+  onStart: () => sound.start(),
+  onHold: (hold, dt) => (litres += dt * 6),   // every frame while held
+  onEnd: (hold) => sound.stop(),              // hold.duration: how long it was held
+}))
+pump.held; pump.source  // 'pointer' | 'key' | null
+```
+
+A mouse, a finger or a key holds it: Space and Enter while the element has focus (make it a `<button>`; Space doesn't scroll the page, a held key doesn't repeat). Another pointer lifting doesn't end the hold; losing focus, a cancelled pointer or `disable()` does. While held the element carries `data-held`, for CSS. On touch screens give it `touch-action: none` and `user-select: none` so a long press neither scrolls nor selects; the context menu a long press opens is held back.
+
 ## Marquee
 
 ```ts
@@ -490,6 +503,15 @@ stage.sound!.play(buffer, { volume: 0.6, rate: 1.2 })
 stage.sound!.burst({ from: 3600, to: 2600, q: 7, gain: 0.3, decay: 0.035 })              // a metallic click
 stage.sound!.burst({ filter: 'highpass', from: 6000, to: 2400, gain: 0.25, decay: 0.9 })  // gas escaping
 stage.sound!.tone({ frequency: 3100, type: 'triangle', gain: 0.04, decay: 0.2, pan: 0.3 }) // a ring
+
+// Recordings: a stretch of a take, faded so it never clicks — a grain.
+const take = await stage.sound!.load('/sounds/foil.mp3')
+stage.sound!.play(take, { offset: 1.2, duration: 0.25, fadeIn: 0.01, fadeOut: 0.06, rate: 1.1 })
+
+// A voice: a sound still playing whose volume and pitch you steer.
+const air = stage.sound!.voice(squeal, { loop: true, volume: 0.8, fadeIn: 0.1 })
+air?.setRate(0.7 + 0.5 * pressure)   // glides (default 0.05 s)
+air?.stop(0.25)                      // fades out, then stops
 ```
 
 Sound is off until the visitor turns it on — or on from the start with `createStage({ sound: { defaultOn: true } })`; either way the visitor's choice is remembered (`storageKey`). Browsers hold audio back until a user activation: a key, a click, a mouse press or the end of a touch (not a touch's start, not a scroll). The bus listens for each of these, in the capture phase, and starts or resumes the context then — also after the system suspended or interrupted it (another app, a phone call) — so "on" never stays silent; the sounds of that very gesture play too.
@@ -502,6 +524,36 @@ An iPhone switched to silent mutes Web Audio. When the visitor turns sound on th
 
 ```ts
 stage.reducedMotion.subscribe((reduced) => { parallax.enabled = !reduced }, { immediate: true })
+```
+
+## Physics
+
+Light rigid bodies for a page's worth of objects — things that knock into each other and spin off, a balloon bouncing round the screen and off the headlines — not thousands. Boxes and spheres (alone or several to a body), static planes, gravity or none; units are yours (CSS pixels through the pixel camera work as well as metres).
+
+```ts
+const physics = new PhysicsWorld({ gravity: vec3(0, -1800, 0), substeps: 3, slop: 0.5, bounceThreshold: 30 })
+const card = physics.add({
+  shape: { type: 'box', half: vec3(80, 50, 4) },           // or shapes: [...] — spheres with offsets
+  position: vec3(0, 300, 0),
+  restitution: 0.4, friction: 0.3, linearDamping: 1.2,
+})
+physics.addPlane(vec3(0, 1, 0), -400)                       // a floor at y = -400 (bodies stay above)
+physics.onContact((c) => c.began && knock(c.speed))         // c.impulse, c.point, c.normal, c.a, c.b
+stage.onFrame((frame) => {
+  physics.step(frame.delta, (h) => card.applyForce(spring(card.position)))  // forces that depend on where it is, every substep
+  mesh.position.copy(card.position)
+  mesh.quaternion.copy(card.quaternion)
+})
+```
+
+- **Contacts are real**: box against box finds the separating axis and clips one face against the other, so a box landing flat rests on four contacts and one hit by a corner spins; impulses carry friction and bounce (the larger restitution, the mean friction). Substeps keep thin, fast bodies from passing through each other.
+- **Bodies** are `dynamic` (forces and contacts move them), `kinematic` (you move them — give them a `velocity` so what they hit responds) or `static`. Shapes can be resized at any time — mutate them; the inertia follows unless you set `inertia`. `group` and `mask` choose who meets whom.
+- **Forces**: `applyForce(f, point?)` and `applyTorque` for the next step; `applyImpulse(j, point?)` changes the velocity at once. Damping is exponential, per second.
+- **Page elements as walls** (`domColliders`): the stage's rect cache places a box per element in a pixel-camera world (origin at the viewport's center, y up), following the scroll with a velocity — no layout reads per frame. Elements inside sticky pins need `live: true`.
+
+```ts
+const walls = stage.use(domColliders(physics, '.chapter h2', { size: () => layer, live: true, depth: 600 }))
+physics.onContact((c) => c.a.userData instanceof Element && c.a.userData.classList.add('is-hit'))
 ```
 
 ## three.js layer
