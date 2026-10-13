@@ -36,6 +36,7 @@ Workflow (owner decision 2026-10-13): commit and push straight to `main` from th
 - Capabilities that need the stage are plugins (`StagePlugin`, used via `stage.use(...)`): clean up through `onDestroy`, re-measure through `stage.onRefresh`, honor `stage.reducedMotion`, and keep horizontal behavior reading-direction aware.
 - Unit tests can't see layout (jsdom): mock geometry in tests, and prove behavior in a real browser with an example plus a check in `scripts/verify-examples.mjs`.
 - Every device: per-frame paths read nothing from layout (not even `window.scrollX`); one-off heavy work runs under `quality.hold()`; full-screen canvases on phones use `stableHeight`; anything rendered once into a target needs an `onRestore` rebuild.
+- The owner's npm installs through a mirror (`npm config get registry`): a lockfile written there points at it, and GitHub's runners can't reach it (`npm ci` hangs, then fails with «Exit handler never called!»). After an `npm install` that adds or updates packages, rewrite the `resolved` hosts to `https://registry.npmjs.org` before committing — npm maps them back to the mirror locally by itself.
 - Scripts run on Windows too (the owner works in PowerShell): no `rm -rf` or other shell-only commands in npm scripts, spawn npm through `npm_execpath`, turn file URLs into paths with `fileURLToPath`.
 
 ## Verifying in a browser
