@@ -25,6 +25,32 @@ export interface PlayOptions {
     pan?: number;
     /** Seconds from now. */
     delay?: number;
+    /** Where in the buffer to start, in seconds. Default `0`. */
+    offset?: number;
+    /** Seconds of the buffer to play. Default: to the end. */
+    duration?: number;
+    /** Fade in over this many seconds (a grain cut from a take doesn't click). Default `0`. */
+    fadeIn?: number;
+    /** Fade out over its last this many seconds. Default `0`. */
+    fadeOut?: number;
+}
+export interface VoiceOptions extends PlayOptions {
+    /** Loop the buffer — or `loopStart`…`loopEnd` (seconds) of it. */
+    loop?: boolean;
+    loopStart?: number;
+    loopEnd?: number;
+}
+/** A sound under way whose volume and pitch can still change: an engine, a squeal, a hum. */
+export interface Voice {
+    readonly source: AudioBufferSourceNode;
+    /** False once it has stopped (or played to its end). */
+    readonly playing: boolean;
+    /** Glides to a volume over `glide` seconds (default `0.05`). */
+    setVolume(volume: number, glide?: number): void;
+    /** Glides to a playback rate — the pitch — over `glide` seconds (default `0.05`). */
+    setRate(rate: number, glide?: number): void;
+    /** Fades out over `fade` seconds (default `0.08`) and stops. */
+    stop(fade?: number): void;
 }
 export interface ToneOptions {
     /** Start frequency in Hz. */
@@ -99,6 +125,12 @@ export declare class SoundBus {
     toggle(): Promise<void>;
     /** Plays a decoded buffer through the master bus. No-op when silent. */
     play(buffer: AudioBuffer, options?: PlayOptions): AudioBufferSourceNode | null;
+    /**
+     * Plays a buffer as a voice whose volume and pitch can change while it
+     * plays — loop a squeal and let its pitch follow the pressure. `null` when
+     * silent; a voice started while audible keeps playing (muted) if sound goes off.
+     */
+    voice(buffer: AudioBuffer, options?: VoiceOptions): Voice | null;
     /** Fetches and decodes an audio file. */
     load(url: string): Promise<AudioBuffer>;
     /** A buffer of noise — the raw material for synthesized fizz, wind, hiss. */

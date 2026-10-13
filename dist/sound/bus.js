@@ -33,6 +33,29 @@ function setAudioSession(type) {
         /* not allowed here — keep the system's choice */
     }
 }
+/** Volume, with the fades asked for, on the audio clock. */
+function envelope(gain, buffer, options, when) {
+    const volume = options.volume ?? 1;
+    const fadeIn = options.fadeIn ?? 0;
+    const fadeOut = options.fadeOut ?? 0;
+    if (fadeIn <= 0 && fadeOut <= 0) {
+        gain.value = volume;
+        return;
+    }
+    if (fadeIn > 0) {
+        gain.setValueAtTime(0, when);
+        gain.linearRampToValueAtTime(volume, when + fadeIn);
+    }
+    else
+        gain.setValueAtTime(volume, when);
+    // How long it sounds, in seconds of the clock (the rate stretches it).
+    const length = (options.duration ?? buffer.duration - (options.offset ?? 0)) / (options.rate ?? 1);
+    if (fadeOut > 0 && Number.isFinite(length) && length > 0) {
+        const end = when + length;
+        gain.setValueAtTime(volume, Math.max(when + fadeIn, end - fadeOut));
+        gain.linearRampToValueAtTime(0, end);
+    }
+}
 /**
  * Events that count as user activation, the only moments browsers let audio
  * start: a key, a click, a mouse press, the end of a touch — not a touch's
@@ -155,7 +178,8 @@ export class SoundBus {
         src.playbackRate.value = options.rate ?? 1;
         let node = src;
         const gain = ctx.createGain();
-        gain.gain.value = options.volume ?? 1;
+        const when = ctx.currentTime + (options.delay ?? 0);
+        envelope(gain.gain, buffer, options, when);
         node.connect(gain);
         node = gain;
         if (options.pan !== undefined && 'createStereoPanner' in ctx) {
@@ -165,8 +189,61 @@ export class SoundBus {
             node = panner;
         }
         node.connect(this.master);
-        src.start(ctx.currentTime + (options.delay ?? 0));
+        if (options.duration !== undefined)
+            src.start(when, options.offset ?? 0, options.duration);
+        else
+            src.start(when, options.offset ?? 0);
         return src;
+    }
+    /**
+     * Plays a buffer as a voice whose volume and pitch can change while it
+     * plays — loop a squeal and let its pitch follow the pressure. `null` when
+     * silent; a voice started while audible keeps playing (muted) if sound goes off.
+     */
+    voice(buffer, options = {}) {
+        const ctx = this.ctx;
+        if (!ctx || !this.master || !this.audible)
+            return null;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = options.loop ?? false;
+        if (options.loopStart !== undefined)
+            src.loopStart = options.loopStart;
+        if (options.loopEnd !== undefined)
+            src.loopEnd = options.loopEnd;
+        src.playbackRate.value = options.rate ?? 1;
+        const gain = ctx.createGain();
+        const when = ctx.currentTime + (options.delay ?? 0);
+        envelope(gain.gain, buffer, options.loop ? { ...options, fadeOut: 0 } : options, when);
+        src.connect(gain).connect(this.route(ctx, options.pan));
+        if (options.duration !== undefined)
+            src.start(when, options.offset ?? 0, options.duration);
+        else
+            src.start(when, options.offset ?? 0);
+        let playing = true;
+        src.addEventListener('ended', () => (playing = false));
+        const glideTo = (param, value, glide) => {
+            const t = ctx.currentTime;
+            param.cancelScheduledValues(t);
+            param.setValueAtTime(param.value, t);
+            param.linearRampToValueAtTime(value, t + Math.max(0.005, glide));
+        };
+        return {
+            source: src,
+            get playing() {
+                return playing;
+            },
+            setVolume: (v, glide = 0.05) => playing && glideTo(gain.gain, Math.max(0, v), glide),
+            setRate: (r, glide = 0.05) => playing && glideTo(src.playbackRate, Math.max(0.01, r), glide),
+            stop: (fade = 0.08) => {
+                if (!playing)
+                    return;
+                playing = false;
+                const t = ctx.currentTime;
+                glideTo(gain.gain, 0, fade);
+                src.stop(t + Math.max(0.005, fade) + 0.02);
+            },
+        };
     }
     /** Fetches and decodes an audio file. */
     async load(url) {
